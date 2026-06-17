@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Registrarse - Ahorcado Maquiavélico</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app">
+    <section class="panel" id="register-panel">
+      <h1>Crear cuenta</h1>
+      <p>Completa el formulario para registrarte como alumno o profesor.</p>
+      <form id="register-form" class="auth-form">
+        <label>
+          Nombre de usuario:
+          <input type="text" id="register-username" maxlength="30" required />
+        </label>
+        <label>
+          Nombres:
+          <input type="text" id="register-first-name" maxlength="50" required />
+        </label>
+        <label>
+          Apellidos:
+          <input type="text" id="register-last-name" maxlength="50" required />
+        </label>
+        <label>
+          Correo electrónico:
+          <input type="email" id="register-email" required />
+        </label>
+        <label>
+          Rol:
+          <select id="register-role">
+            <option value="student">Alumno</option>
+            <option value="teacher">Profesor</option>
+          </select>
+        </label>
+        <label>
+          Contraseña:
+          <input type="password" id="register-password" required />
+        </label>
+        <div class="auth-actions">
+          <button type="button" id="register-form-btn">Crear cuenta</button>
+          <a href="/" class="secondary-button" id="back-to-login">Volver al login</a>
+        </div>
+      </form>
+      <div class="message" id="register-message"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
