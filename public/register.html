@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Registrarse - Ahorcado Maquiavélico</title>
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <title>Registrarse - Ahorcado</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -11,40 +12,78 @@
     <section class="panel" id="register-panel">
       <h1>Crear cuenta</h1>
       <p>Completa el formulario para registrarte como alumno o profesor.</p>
-      <form id="register-form" class="auth-form">
-        <label>
-          Nombre de usuario:
-          <input type="text" id="register-username" maxlength="30" required />
-        </label>
-        <label>
-          Nombres:
-          <input type="text" id="register-first-name" maxlength="50" required />
-        </label>
-        <label>
-          Apellidos:
-          <input type="text" id="register-last-name" maxlength="50" required />
-        </label>
-        <label>
-          Correo electrónico:
-          <input type="email" id="register-email" required />
-        </label>
-        <label>
-          Rol:
-          <select id="register-role">
-            <option value="student">Alumno</option>
-            <option value="teacher">Profesor</option>
-          </select>
-        </label>
-        <label>
-          Contraseña:
-          <input type="password" id="register-password" required />
-        </label>
+      
+      <form id="register-form" class="auth-form" novalidate>
+        
+        <label for="register-username">Nombre de usuario:</label>
+        <input 
+          type="text" 
+          id="register-username" 
+          name="username"
+          maxlength="30" 
+          pattern="^[a-zA-Z0-9_]{3,30}$"
+          title="El nombre de usuario debe tener entre 3 y 30 caracteres y solo contener letras, números o guiones bajos."
+          autocomplete="username"
+          required 
+        />
+
+        <label for="register-first-name">Nombres:</label>
+        <input 
+          type="text" 
+          id="register-first-name" 
+          name="firstName"
+          maxlength="50" 
+          pattern="^[a-zA-ZñÑáéíóúÁÉÍÓÚüÜ\s]+$"
+          title="El nombre solo debe contener letras."
+          required 
+        />
+
+        <label for="register-last-name">Apellidos:</label>
+        <input 
+          type="text" 
+          id="register-last-name" 
+          name="lastName"
+          maxlength="50" 
+          pattern="^[a-zA-ZñÑáéíóúÁÉÍÓÚüÜ\s]+$"
+          title="Los apellidos solo deben contener letras."
+          required 
+        />
+
+        <label for="register-email">Correo electrónico:</label>
+        <input 
+          type="email" 
+          id="register-email" 
+          name="email"
+          autocomplete="email"
+          required 
+        />
+
+        <label for="register-role">Rol:</label>
+        <select id="register-role" name="role" required>
+          <option value="" disabled selected>Selecciona tu rol</option>
+          <option value="student">Alumno</option>
+          <option value="teacher">Profesor</option>
+        </select>
+
+        <label for="register-password">Contraseña:</label>
+        <input 
+          type="password" 
+          id="register-password" 
+          name="password"
+          minlength="8"
+          pattern="^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$"
+          title="La contraseña debe tener al menos 8 caracteres, incluir una letra mayúscula, una minúscula y un número."
+          autocomplete="new-password"
+          required 
+        />
+
         <div class="auth-actions">
-          <button type="button" id="register-form-btn">Crear cuenta</button>
+          <button type="submit" id="register-form-btn">Crear cuenta</button>
           <a href="/" class="secondary-button" id="back-to-login">Volver al login</a>
         </div>
       </form>
-      <div class="message" id="register-message"></div>
+      
+      <div class="message" id="register-message" aria-live="polite"></div>
     </section>
   </main>
 

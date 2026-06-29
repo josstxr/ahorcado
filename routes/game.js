@@ -24,28 +24,34 @@ function computeScore(status, difficulty, wrongAttempts) {
   return Math.max(0, base + difficultyBonus - wrongAttempts * 10);
 }
 
+// SEGURIDAD: Ya no genera pistas dinámicas en memoria al consultar el estado.
+// Ahora se limita de forma estricta a devolver el estado persistido en la BD.
 async function getGameState(game) {
   const wordRes = await pool.query('SELECT word FROM words WHERE id = $1', [game.word_id]);
   const word = wordRes.rows[0].word;
-  const masked = maskWord(word, game.guessed);
-  const hint = game.revealed_hint || (game.wrong_attempts >= 3 ? chooseHint(word, game.guessed) : null);
 
-  return {
+  const gameState = {
     id: game.id,
     status: game.status,
     difficulty: game.difficulty,
     player_id: game.player_id,
-    masked,
+    masked: maskWord(word, game.guessed),
     wrongLetters: game.wrong,
     guessedLetters: game.guessed,
     wrongAttempts: game.wrong_attempts,
     attempts: game.attempts,
-    hint,
+    hint: game.revealed_hint, 
     maxWrong: MAX_WRONG,
   };
+
+  if (game.status !== 'playing') {
+    gameState.word = word;
+  }
+
+  return gameState;
 }
 
-router.post('/game', authToken, async (req, res) => {
+router.post('/', authToken, async (req, res) => {
   try {
     const playerId = req.user.id;
     const difficulty = ['easy', 'medium', 'hard'].includes(req.body.difficulty) ? req.body.difficulty : 'easy';
@@ -70,25 +76,60 @@ router.post('/game', authToken, async (req, res) => {
 });
 
 router.post('/guess', authToken, async (req, res) => {
+  // SEGURIDAD: Usamos un cliente dedicado del pool para poder manejar transacciones y bloqueos de fila de forma segura
+  const client = await pool.connect();
+
   try {
     const gameId = parseInt(req.body.gameId, 10);
-    const letter = String(req.body.letter || '').trim().toLowerCase();
-    if (!gameId || !letter.match(/^[a-zñ]$/i)) {
+    
+    // SEGURIDAD: Validación estricta del tipo de dato entrante para mitigar inyecciones de estructuras de datos (objetos/arreglos)
+    if (typeof req.body.letter !== 'string') {
+      client.release();
+      return res.status(400).json({ error: 'La letra debe ser un texto de un solo carácter' });
+    }
+
+    const letter = req.body.letter.trim().toLowerCase();
+    if (!gameId || letter.length !== 1 || !letter.match(/^[a-zñ]$/i)) {
+      client.release();
       return res.status(400).json({ error: 'gameId y una letra válida son obligatorios' });
     }
 
-    const gameRes = await pool.query('SELECT * FROM games WHERE id = $1', [gameId]);
-    if (!gameRes.rows.length) return res.status(404).json({ error: 'Partida no encontrada' });
+    // SEGURIDAD: Iniciamos la transacción atómica
+    await client.query('BEGIN');
+
+    // SEGURIDAD: Aplicamos 'FOR UPDATE' para bloquear la fila correspondiente a esta partida. 
+    // Evita condiciones de carrera si un usuario manda múltiples peticiones idénticas en paralelo.
+    const gameRes = await client.query('SELECT * FROM games WHERE id = $1 FOR UPDATE', [gameId]);
+    if (!gameRes.rows.length) {
+      await client.query('ROLLBACK');
+      client.release();
+      return res.status(404).json({ error: 'Partida no encontrada' });
+    }
+
     const game = gameRes.rows[0];
-    if (game.status !== 'playing') return res.status(400).json({ error: 'La partida ya terminó' });
+
+    // SEGURIDAD (Control de Acceso): Valida que el token del jugador corresponda estrictamente al dueño de esta partida
+    if (game.player_id !== req.user.id) {
+      await client.query('ROLLBACK');
+      client.release();
+      return res.status(403).json({ error: 'No tienes permiso para interactuar con esta partida' });
+    }
+
+    if (game.status !== 'playing') {
+      await client.query('ROLLBACK');
+      client.release();
+      return res.status(400).json({ error: 'La partida ya terminó' });
+    }
 
     const guessed = new Set(game.guessed);
     const wrong = new Set(game.wrong);
     if (guessed.has(letter) || wrong.has(letter)) {
+      await client.query('ROLLBACK');
+      client.release();
       return res.status(400).json({ error: 'Ya intentaste esa letra' });
     }
 
-    const wordRes = await pool.query('SELECT word FROM words WHERE id = $1', [game.word_id]);
+    const wordRes = await client.query('SELECT word FROM words WHERE id = $1', [game.word_id]);
     const word = wordRes.rows[0].word.toLowerCase();
     const isCorrect = word.includes(letter);
 
@@ -102,6 +143,8 @@ router.post('/guess', authToken, async (req, res) => {
     } else {
       wrong.add(letter);
       wrongAttempts += 1;
+      
+      // La pista se calcula una única vez al tercer fallo y queda grabada permanentemente
       if (wrongAttempts >= 3 && !revealedHint) {
         revealedHint = chooseHint(word, Array.from(guessed));
       }
@@ -114,33 +157,30 @@ router.post('/guess', authToken, async (req, res) => {
       status = 'lost';
     }
 
-    await pool.query(
+    await client.query(
       'UPDATE games SET guessed = $1, wrong = $2, wrong_attempts = $3, attempts = $4, status = $5, revealed_hint = $6, finished_at = CASE WHEN $5::varchar != $7::varchar THEN now() ELSE finished_at END WHERE id = $8',
       [Array.from(guessed), Array.from(wrong), wrongAttempts, attempts, status, revealedHint, game.status, gameId]
     );
 
     if (status === 'won') {
       const earned = computeScore(status, game.difficulty, wrongAttempts);
-      await pool.query('UPDATE players SET score = score + $1 WHERE id = $2', [earned, game.player_id]);
+      await client.query('UPDATE players SET score = score + $1 WHERE id = $2', [earned, game.player_id]);
     }
 
-    const updatedGameRes = await pool.query('SELECT * FROM games WHERE id = $1', [gameId]);
+    // Confirmamos todos los cambios de forma segura
+    await client.query('COMMIT');
+
+    const updatedGameRes = await client.query('SELECT * FROM games WHERE id = $1', [gameId]);
     res.json(await getGameState(updatedGameRes.rows[0]));
+
   } catch (err) {
+    // Si algo falla, revertimos el estado para no corromper ni bloquear la base de datos
+    await client.query('ROLLBACK');
     console.error(err);
     res.status(500).json({ error: 'Error al procesar la letra' });
-  }
-});
-
-router.get('/leaderboard', async (req, res) => {
-  try {
-    const result = await pool.query(
-      'SELECT name, score FROM players ORDER BY score DESC, created_at ASC LIMIT 10'
-    );
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error al obtener el ranking' });
+  } finally {
+    // Es mandatorio liberar el cliente para no agotar las conexiones del Pool
+    client.release();
   }
 });
 

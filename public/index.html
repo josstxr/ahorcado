@@ -3,34 +3,51 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ahorcado Maquiavélico</title>
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <title>Ahorcado UTVAM</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <main class="app">
+    
     <section class="panel" id="intro-panel">
-      <h1>Ahorcado Maquiavélico</h1>
+      <h1>Ahorcado UTVAM</h1>
       <p>Inicia sesión como profesor o alumno. Los profesores pueden añadir palabras para los alumnos.</p>
+      
       <div id="login-view">
-        <form id="login-form" class="auth-form">
-          <label>
-            Usuario:
-            <input type="text" id="auth-name" maxlength="30" required />
-          </label>
-          <label>
-            Contraseña:
-            <input type="password" id="auth-password" required />
-          </label>
+        <form id="login-form" class="auth-form" novalidate>
+          <label for="auth-name">Usuario:</label>
+          <input 
+            type="text" 
+            id="auth-name" 
+            name="username"
+            maxlength="30" 
+            pattern="^[a-zA-Z0-9_]{3,30}$"
+            title="El usuario debe tener entre 3 y 30 caracteres alfanuméricos."
+            autocomplete="username"
+            required 
+          />
+          
+          <label for="auth-password">Contraseña:</label>
+          <input 
+            type="password" 
+            id="auth-password" 
+            name="password"
+            autocomplete="current-password"
+            required 
+          />
+          
           <div class="auth-actions">
-            <button type="button" id="login-btn">Iniciar sesión</button>
+            <button type="submit" id="login-btn">Iniciar sesión</button>
             <button type="button" id="show-register-btn" class="secondary-button">Registrarse</button>
           </div>
         </form>
       </div>
 
-      <div class="message" id="auth-message"></div>
+      <div class="message" id="auth-message" aria-live="polite"></div>
+      
       <div class="leaderboard" id="leaderboard">
-        <h2>Ranking</h2>
+        <h2>Ranking General</h2>
         <ol id="ranking-list"></ol>
       </div>
     </section>
@@ -43,7 +60,7 @@
           <div class="action-icon">🎮</div>
           <div class="action-label">Jugar</div>
         </button>
-        <button id="kahoot-btn" class="action-btn">
+        <button id="speed-challenge-btn" class="action-btn">
           <div class="action-icon">⚡</div>
           <div class="action-label">Palabra del Día</div>
         </button>
@@ -59,10 +76,10 @@
       <div class="game-header">
         <div>
           <h2 id="game-status">Partida en juego</h2>
-          <p id="game-difficulty">Dificultad: easy</p>
+          <p id="game-difficulty">Dificultad: fácil</p>
         </div>
         <div class="game-actions">
-          <select id="difficulty">
+          <select id="difficulty" name="difficulty">
             <option value="easy">Fácil</option>
             <option value="medium">Medio</option>
             <option value="hard">Difícil</option>
@@ -82,64 +99,74 @@
         <div class="hint" id="hint-area">Aún no hay pista.</div>
       </div>
 
-      <section class="guess-panel">
-        <label>
-          Letra:
-          <input id="letter-input" maxlength="1" autocomplete="off" />
-        </label>
-        <button id="guess-btn">Intentar</button>
-        <div class="message" id="game-message"></div>
-      </section>
+      <form id="guess-form" class="guess-panel" onsubmit="return false;">
+        <label for="letter-input">Letra:</label>
+        <input 
+          type="text"
+          id="letter-input" 
+          maxlength="1" 
+          pattern="^[a-zñA-ZÑ]$"
+          title="Ingresa una única letra válida."
+          autocomplete="off" 
+        />
+        <button type="button" id="guess-btn">Intentar</button>
+        <div class="message" id="game-message" aria-live="polite"></div>
+      </form>
     </section>
 
     <section class="panel hidden" id="teacher-panel">
       <h2>Panel de profesor</h2>
-      <form id="word-form" class="auth-form">
-        <label>
-          Palabra o frase:
-          <input type="text" id="word-text" required />
-        </label>
-        <label>
-          Dificultad:
-          <select id="word-difficulty">
-            <option value="easy">Fácil</option>
-            <option value="medium">Medio</option>
-            <option value="hard">Difícil</option>
-          </select>
-        </label>
+      
+      <form id="word-form" class="auth-form" novalidate>
+        <label for="word-text">Palabra:</label>
+        <input 
+          type="text" 
+          id="word-text" 
+          name="wordText"
+          pattern="^[a-zA-ZñÑáéíóúÁÉÍÓÚüÜ]+$" 
+          title="La palabra solo debe contener letras."
+          required 
+        />
+        
+        <label for="word-difficulty">Dificultad:</label>
+        <select id="word-difficulty" name="wordDifficulty" required>
+          <option value="easy">Fácil</option>
+          <option value="medium">Medio</option>
+          <option value="hard">Difícil</option>
+        </select>
+        
         <div class="auth-actions">
-          <button type="button" id="add-word-btn">Agregar palabra</button>
+          <button type="submit" id="add-word-btn">Agregar palabra</button>
           <button type="button" id="back-to-home-from-teacher-btn" class="secondary-button">Volver</button>
         </div>
       </form>
-      <div class="message" id="teacher-message"></div>
+      <div class="message" id="teacher-message" aria-live="polite"></div>
 
       <hr class="section-divider">
-      <h3>Palabra del Día</h3>
-      <form id="daily-word-form" class="auth-form">
-        <label>
-          Seleccionar palabra:
-          <select id="daily-word-select" required>
-            <option value="">Cargando palabras...</option>
-          </select>
-        </label>
-        <button type="button" id="set-daily-word-btn">Establecer como Palabra del Día</button>
-        <div class="message" id="daily-word-message"></div>
+      
+      <h3>Establecer Palabra del Día</h3>
+      <form id="daily-word-form" class="auth-form" novalidate>
+        <label for="daily-word-select">Seleccionar palabra:</label>
+        <select id="daily-word-select" name="dailyWordSelect" required>
+          <option value="">Cargando palabras...</option>
+        </select>
+        <button type="submit" id="set-daily-word-btn">Establecer como Palabra del Día</button>
+        <div class="message" id="daily-word-message" aria-live="polite"></div>
       </form>
     </section>
 
-    <section class="panel hidden" id="kahoot-panel">
-      <div class="kahoot-header">
-        <button id="back-to-home-from-kahoot-btn" class="secondary-button">Volver</button>
+    <section class="panel hidden" id="speed-challenge-panel">
+      <div class="challenge-header">
+        <button id="back-to-home-from-challenge-btn" class="secondary-button">Volver</button>
       </div>
 
-      <div id="kahoot-waiting" class="kahoot-container hidden">
+      <div id="challenge-waiting" class="challenge-container hidden">
         <h2>Palabra del Día</h2>
-        <p>Cargando...</p>
+        <p>Comprobando disponibilidad del servidor...</p>
       </div>
 
-      <div id="kahoot-game" class="kahoot-container hidden">
-        <div class="kahoot-timer">
+      <div id="challenge-game" class="challenge-container hidden">
+        <div class="challenge-timer">
           <div class="timer-circle">
             <svg viewBox="0 0 100 100">
               <circle cx="50" cy="50" r="45" class="timer-bg"></circle>
@@ -149,51 +176,55 @@
           </div>
         </div>
 
-        <div class="kahoot-word">
-          <h3>Primera letra:</h3>
-          <div class="kahoot-masked-word" id="kahoot-masked-word">* * * * *</div>
+        <div class="challenge-word">
+          <h3>Estructura de la palabra (Enmascarada):</h3>
+          <div class="challenge-masked-display" id="challenge-masked-word">* * * * *</div>
         </div>
 
-        <div class="kahoot-difficulty">
-          <span id="kahoot-difficulty-badge">Fácil</span>
+        <div class="challenge-difficulty">
+          <span id="challenge-difficulty-badge">Fácil</span>
         </div>
 
-        <div id="kahoot-answer-area">
-          <p>Escribe la primera letra:</p>
+        <form id="challenge-answer-form" class="challenge-answer-area" novalidate>
+          <p>Escribe la primera letra de la palabra lo más rápido posible:</p>
           <input 
             type="text" 
-            id="kahoot-letter-input" 
+            id="challenge-letter-input" 
+            name="challengeLetter"
             maxlength="1" 
+            pattern="^[a-zñA-ZÑ]$"
+            title="Debes ingresar una única letra."
             autocomplete="off"
             placeholder="A"
+            required
           />
-          <button id="kahoot-submit-btn">Responder</button>
-          <div class="message" id="kahoot-message"></div>
-        </div>
+          <button type="submit" id="challenge-submit-btn">Responder</button>
+          <div class="message" id="challenge-message" aria-live="polite"></div>
+        </form>
       </div>
 
-      <div id="kahoot-result" class="kahoot-container hidden">
+      <div id="challenge-result" class="challenge-container hidden">
         <div class="result-content">
-          <h2 id="result-title">¡Correcto!</h2>
-          <p id="result-message">Ganaste puntos por tu respuesta</p>
+          <h2 id="result-title">¡Procesado!</h2>
+          <p id="result-message">Evaluando precisión de la respuesta...</p>
           <div class="result-stats">
             <div class="stat">
-              <span class="stat-label">Puntos:</span>
-              <span class="stat-value" id="result-points">+50</span>
+              <span class="stat-label">Puntos Obtenidos:</span>
+              <span class="stat-value" id="result-points">+0</span>
             </div>
             <div class="stat">
-              <span class="stat-label">Tiempo:</span>
-              <span class="stat-value" id="result-time">2.5s</span>
+              <span class="stat-label">Tiempo de Respuesta:</span>
+              <span class="stat-value" id="result-time">0s</span>
             </div>
           </div>
-          <button id="kahoot-leaderboard-btn">Ver Ranking</button>
+          <button type="button" id="challenge-leaderboard-btn">Ver Posiciones</button>
         </div>
       </div>
 
-      <div id="kahoot-leaderboard" class="kahoot-container hidden">
-        <h2>Ranking - Palabra del Día</h2>
-        <ol id="kahoot-ranking-list" class="kahoot-ranking"></ol>
-        <button id="kahoot-back-btn">Volver a Home</button>
+      <div id="challenge-leaderboard" class="challenge-container hidden">
+        <h2>Clasificación de Hoy - Palabra del Día</h2>
+        <ol id="challenge-ranking-list" class="challenge-ranking"></ol>
+        <button type="button" id="challenge-back-btn">Volver al Menú</button>
       </div>
     </section>
   </main>

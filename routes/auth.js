@@ -27,7 +27,7 @@ router.post('/register', async (req, res) => {
     ]);
 
     if (existingName.rows.length) return res.status(400).json({ error: 'El nombre ya existe' });
-    if (existingEmail.rows.length) return res.status(400).json({ error: 'El correo electrónico ya está en uso' });
+    if (existingEmail.rows.length) return res.status(400).json({ error: 'El correo electronico ya está en uso' });
 
     const hashed = await bcrypt.hash(password, 10);
     const insert = await pool.query(
@@ -81,7 +81,7 @@ router.post('/login', async (req, res) => {
     res.json({ token, user: { id: user.id, name: user.name, first_name: user.first_name, last_name: user.last_name, email: user.email, role: user.role, score: user.score } });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Error al iniciar sesión' });
+    res.status(500).json({ error: 'Error al iniciar sesion' });
   }
 });
 
