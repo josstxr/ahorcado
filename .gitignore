@@ -17,3 +17,4 @@ npm-debug.log*
 
 # Archivos de macOS
 .DS_Store
+.vercel
