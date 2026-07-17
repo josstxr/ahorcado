@@ -4,11 +4,9 @@ const { authToken } = require('../middleware/auth');
 
 const router = express.Router();
 
-<<<<<<< HEAD
-=======
 // OWASP Top 10 - A01 Broken Access Control / A05 Security Misconfiguration
 // Solo los profesores pueden consultar o agregar palabras, y el acceso se valida en el servidor.
->>>>>>> 8054e26 (Initial commit)
+
 router.get('/', authToken, async (req, res) => {
   try {
     if (req.user.role !== 'teacher') {
@@ -26,11 +24,9 @@ router.get('/', authToken, async (req, res) => {
   }
 });
 
-<<<<<<< HEAD
-=======
 // OWASP Top 10 - A03 Injection
 // Se validan los tipos de entrada y se sanitiza la palabra para evitar caracteres maliciosos.
->>>>>>> 8054e26 (Initial commit)
+
 router.post('/', authToken, async (req, res) => {
   try {
     // SEGURIDAD: No loguear el objeto 'req.user' completo para evitar la fuga de datos sensibles (como hashes de contraseñas)
@@ -81,8 +77,6 @@ router.post('/', authToken, async (req, res) => {
   }
 });
 
-<<<<<<< HEAD
-=======
 // --- NUEVA FUNCIONALIDAD: GENERACIÓN DE PALABRAS CON IA ---
 
 // OWASP Top 10 - A01 Broken Access Control
@@ -159,5 +153,4 @@ Ejemplo de respuesta: {"words": ["palabra1", "palabra2"]}`;
   }
 });
 
->>>>>>> 8054e26 (Initial commit)
 module.exports = router;
