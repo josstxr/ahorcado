@@ -15,7 +15,10 @@ if (!connectionString) {
 const sqlPath = path.join(__dirname, 'db', 'init.sql');
 const sql = fs.readFileSync(sqlPath, 'utf8');
 
-const pool = new Pool({ connectionString });
+const pool = new Pool({
+  connectionString,
+  ssl: { rejectUnauthorized: false },
+});
 
 // OWASP Top 10 - A02 Cryptographic Failures / A05 Security Misconfiguration
 // Se crea el usuario profesor por defecto usando bcrypt y variables de entorno, evitando contraseñas planas en la base de datos.

@@ -14,7 +14,7 @@ let adminUrl;
 try {
   adminUrl = new URL(connectionString);
 } catch (err) {
-  console.error('Error: la cadena PG_CONNECTION_STRING no es válida.');
+  console.error('Error: la cadena PG_CONNECTION_STRING no es vï¿½lida.');
   console.error(err.message);
   process.exit(1);
 }
@@ -22,7 +22,10 @@ try {
 const dbName = adminUrl.pathname.replace(/\//g, '') || 'ahorcado';
 adminUrl.pathname = '/postgres';
 
-const pool = new Pool({ connectionString: adminUrl.toString() });
+const pool = new Pool({
+  connectionString: adminUrl.toString(),
+  ssl: { rejectUnauthorized: false },
+});
 
 async function main() {
   try {
