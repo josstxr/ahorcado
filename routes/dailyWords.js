@@ -5,7 +5,12 @@ const { authToken } = require('../middleware/auth');
 const router = express.Router();
 
 // 1. Obtener palabra del día (para estudiantes - enmascarada)
+<<<<<<< HEAD
 // SEGURIDAD: Ahora requiere authToken para evitar que cualquiera husmee respuestas usando IDs ajenos
+=======
+// OWASP Top 10 - A01 Broken Access Control
+// Requiere autenticación para evitar que usuarios no autorizados inspeccionen o manipulen datos de otros jugadores.
+>>>>>>> 8054e26 (Initial commit)
 router.get('/', authToken, async (req, res) => {
   try {
     const result = await pool.query(`
@@ -44,6 +49,11 @@ router.get('/', authToken, async (req, res) => {
 });
 
 // 2. Profesor: establecer palabra del día
+<<<<<<< HEAD
+=======
+// OWASP Top 10 - A01 Broken Access Control / A04 Insecure Design
+// Solo usuarios con rol profesor pueden cambiar la palabra del día y la operación se realiza con transacción.
+>>>>>>> 8054e26 (Initial commit)
 router.post('/', authToken, async (req, res) => {
   const client = await pool.connect();
   try {
@@ -87,6 +97,11 @@ router.post('/', authToken, async (req, res) => {
 });
 
 // 3. Estudiante: responder palabra del día (Con sistema de bonificación por velocidad)
+<<<<<<< HEAD
+=======
+// OWASP Top 10 - A04 Insecure Design / A03 Injection
+// Se valida la entrada, se evita responder dos veces y se procesa la respuesta de forma transaccional.
+>>>>>>> 8054e26 (Initial commit)
 router.post('/answer', authToken, async (req, res) => {
   const client = await pool.connect();
   try {
@@ -183,6 +198,11 @@ router.post('/answer', authToken, async (req, res) => {
 });
 
 // 4. Obtener tabla de clasificación de la palabra del día
+<<<<<<< HEAD
+=======
+// OWASP Top 10 - A01 Broken Access Control
+// Solo usuarios autenticados pueden consultar el ranking y el servidor filtra los datos por la palabra del día solicitada.
+>>>>>>> 8054e26 (Initial commit)
 router.get('/leaderboard/:dailyWordId', authToken, async (req, res) => {
   try {
     const dailyWordId = parseInt(req.params.dailyWordId, 10);

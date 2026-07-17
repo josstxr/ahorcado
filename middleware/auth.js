@@ -1,6 +1,12 @@
 const jwt = require('jsonwebtoken');
+<<<<<<< HEAD
 
 const JWT_SECRET = process.env.JWT_SECRET || 'c0d1g0-s3cr3t';
+=======
+const { getJwtSecret } = require('../config/auth');
+
+const JWT_SECRET = getJwtSecret();
+>>>>>>> 8054e26 (Initial commit)
 
 function authToken(req, res, next) {
   const authHeader = req.headers.authorization || '';

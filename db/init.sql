@@ -63,10 +63,14 @@ CREATE TABLE IF NOT EXISTS daily_word_answers (
 -- DATA SEMILLA (INSERCIONES INICIALES)
 -- =========================================================
 
+<<<<<<< HEAD
 -- Insertar profesor por defecto (Contraseña plana provisional, idealmente hasheada en producción)
 INSERT INTO players (name, first_name, last_name, email, password, role) VALUES
     ('profesor', 'Admin', 'Profesor', 'profesor@ahorcado.local', 'admin123', 'teacher')
 ON CONFLICT (name) DO NOTHING;
+=======
+-- El profesor por defecto se crea desde init-db.js usando variables de entorno y bcrypt.
+>>>>>>> 8054e26 (Initial commit)
 
 -- Banco de palabras iniciales
 INSERT INTO words (word, difficulty) VALUES

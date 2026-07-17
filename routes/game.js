@@ -24,10 +24,22 @@ function computeScore(status, difficulty, wrongAttempts) {
   return Math.max(0, base + difficultyBonus - wrongAttempts * 10);
 }
 
+<<<<<<< HEAD
 // SEGURIDAD: Ya no genera pistas dinámicas en memoria al consultar el estado.
 // Ahora se limita de forma estricta a devolver el estado persistido en la BD.
 async function getGameState(game) {
   const wordRes = await pool.query('SELECT word FROM words WHERE id = $1', [game.word_id]);
+=======
+// OWASP Top 10 - A04 Insecure Design / A01 Broken Access Control
+// El estado del juego se construye a partir de datos persistidos en BD y no se generan pistas dinámicas en memoria.
+async function getGameState(game) {
+  const wordRes = await pool.query('SELECT word FROM words WHERE id = $1', [game.word_id]);
+  if (!wordRes.rows.length) {
+    // Esto indica un problema de integridad de datos, pero debemos manejarlo para no crashear el servidor.
+    console.error(`Error de integridad: No se encontró la palabra con id ${game.word_id} para la partida ${game.id}`);
+    throw new Error('No se pudo encontrar la palabra asociada a la partida.');
+  }
+>>>>>>> 8054e26 (Initial commit)
   const word = wordRes.rows[0].word;
 
   const gameState = {
@@ -76,13 +88,23 @@ router.post('/', authToken, async (req, res) => {
 });
 
 router.post('/guess', authToken, async (req, res) => {
+<<<<<<< HEAD
   // SEGURIDAD: Usamos un cliente dedicado del pool para poder manejar transacciones y bloqueos de fila de forma segura
+=======
+  // OWASP Top 10 - A04 Insecure Design / A01 Broken Access Control
+  // Se maneja la jugada con transacciones y bloqueo de fila para evitar condiciones de carrera y acceso no autorizado.
+>>>>>>> 8054e26 (Initial commit)
   const client = await pool.connect();
 
   try {
     const gameId = parseInt(req.body.gameId, 10);
     
+<<<<<<< HEAD
     // SEGURIDAD: Validación estricta del tipo de dato entrante para mitigar inyecciones de estructuras de datos (objetos/arreglos)
+=======
+    // OWASP Top 10 - A03 Injection
+    // Se valida estrictamente el tipo y formato de la letra para evitar entradas maliciosas.
+>>>>>>> 8054e26 (Initial commit)
     if (typeof req.body.letter !== 'string') {
       client.release();
       return res.status(400).json({ error: 'La letra debe ser un texto de un solo carácter' });
@@ -97,7 +119,12 @@ router.post('/guess', authToken, async (req, res) => {
     // SEGURIDAD: Iniciamos la transacción atómica
     await client.query('BEGIN');
 
+<<<<<<< HEAD
     // SEGURIDAD: Aplicamos 'FOR UPDATE' para bloquear la fila correspondiente a esta partida. 
+=======
+    // OWASP Top 10 - A04 Insecure Design
+    // Se usa FOR UPDATE para bloquear la fila y evitar conflictos al procesar la misma partida en paralelo.
+>>>>>>> 8054e26 (Initial commit)
     // Evita condiciones de carrera si un usuario manda múltiples peticiones idénticas en paralelo.
     const gameRes = await client.query('SELECT * FROM games WHERE id = $1 FOR UPDATE', [gameId]);
     if (!gameRes.rows.length) {
@@ -108,7 +135,12 @@ router.post('/guess', authToken, async (req, res) => {
 
     const game = gameRes.rows[0];
 
+<<<<<<< HEAD
     // SEGURIDAD (Control de Acceso): Valida que el token del jugador corresponda estrictamente al dueño de esta partida
+=======
+    // OWASP Top 10 - A01 Broken Access Control
+    // El servidor verifica que el usuario autenticado sea el dueño de la partida antes de modificarla.
+>>>>>>> 8054e26 (Initial commit)
     if (game.player_id !== req.user.id) {
       await client.query('ROLLBACK');
       client.release();
