@@ -16,7 +16,11 @@ router.use('/register', authLimiter);
 router.post('/register', async (req, res) => {
   try {
     console.log(`[AUTH] Registro intento para usuario: ${String(req.body?.name || '').trim()}`);
-    
+
+    if (!process.env.PG_CONNECTION_STRING && !process.env.DATABASE_URL && !process.env.POSTGRES_URL) {
+      return res.status(503).json({ error: 'La base de datos no está configurada en producción. Contacta al administrador.' });
+    }
+
     const name = String(req.body.name || '').trim().slice(0, 30);
     const first_name = String(req.body.first_name || '').trim().slice(0, 50);
     const last_name = String(req.body.last_name || '').trim().slice(0, 50);
@@ -70,6 +74,11 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     console.log(`[AUTH] Login intento: ${req.ip} -> ${String(req.body?.credential || '').trim()}`);
+
+    if (!process.env.PG_CONNECTION_STRING && !process.env.DATABASE_URL && !process.env.POSTGRES_URL) {
+      return res.status(503).json({ error: 'La base de datos no está configurada en producción. Contacta al administrador.' });
+    }
+
     const credential = String(req.body.credential || req.body.name || req.body.username || req.body.email || '').trim().slice(0, 100);
     const password = String(req.body.password || '');
     if (!credential || !password) return res.status(400).json({ error: 'El usuario/correo y la contraseña son obligatorios.' });

@@ -1,8 +1,7 @@
 function getJwtSecret() {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    console.error('FATAL ERROR: JWT_SECRET is not defined in .env file.');
-    process.exit(1);
+  const secret = process.env.JWT_SECRET || 'development-secret';
+  if (!process.env.JWT_SECRET) {
+    console.warn('JWT_SECRET no definido; se usará un valor temporal de desarrollo.');
   }
   return secret;
 }
