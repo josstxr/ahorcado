@@ -54,6 +54,23 @@ export function initTraditionalGame({ elements, onGameReady }) {
   const sounds = createSoundEngine();
   let previousState = null;
   let requestPending = false;
+  let autoAdvanceTimer = null;
+
+  function clearAutoAdvance() {
+    if (autoAdvanceTimer) {
+      window.clearTimeout(autoAdvanceTimer);
+      autoAdvanceTimer = null;
+    }
+  }
+
+  function queueNextWord(delay = 1400) {
+    clearAutoAdvance();
+    if (requestPending) return;
+    autoAdvanceTimer = window.setTimeout(() => {
+      autoAdvanceTimer = null;
+      startNewGame();
+    }, delay);
+  }
 
   function renderHangman(wrongAttempts = 0) {
     hangmanParts?.forEach((part) => {
@@ -115,7 +132,10 @@ export function initTraditionalGame({ elements, onGameReady }) {
 
     gameMessage?.classList.remove('result-message', 'win', 'lose');
     if (data.status !== 'playing') {
-      if (wasPlaying || !previousState) announceResult(data);
+      if (wasPlaying || !previousState) {
+        announceResult(data);
+        queueNextWord();
+      }
     } else if (newCorrectGuess) {
       sounds.correct();
       setMessage(gameMessage, '¡Bien! Esa letra sí está en la palabra.');
@@ -150,6 +170,7 @@ export function initTraditionalGame({ elements, onGameReady }) {
   }
 
   async function startNewGame() {
+    clearAutoAdvance();
     if (!state.user) {
       const stored = localStorage.getItem('ahorcado_user');
       if (stored) setState({ user: JSON.parse(stored) });

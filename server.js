@@ -43,16 +43,26 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Error interno del servidor' });
 });
 
-const server = app.listen(PORT, () => {
-  console.log(`Ahorcado UTVAM ejecutándose de forma segura en http://localhost:${PORT}`);
-});
+function startServer() {
+  const server = app.listen(PORT, () => {
+    console.log(`Ahorcado UTVAM ejecutándose de forma segura en http://localhost:${PORT}`);
+  });
 
-server.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(`❌ Error: El puerto ${PORT} ya está en uso.`);
-    console.error('Asegúrate de que no haya otra instancia del servidor ejecutándose o cambia el puerto en tu archivo .env.');
-  } else {
-    console.error(`[SERVER] Error al iniciar: ${err.message}`);
-  }
-  process.exit(1);
-});
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`❌ Error: El puerto ${PORT} ya está en uso.`);
+      console.error('Asegúrate de que no haya otra instancia del servidor ejecutándose o cambia el puerto en tu archivo .env.');
+    } else {
+      console.error(`[SERVER] Error al iniciar: ${err.message}`);
+    }
+    process.exit(1);
+  });
+
+  return server;
+}
+
+if (require.main === module) {
+  startServer();
+}
+
+module.exports = app;
