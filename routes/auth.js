@@ -7,6 +7,11 @@ const { getJwtSecret } = require('../config/auth');
 
 const router = express.Router();
 const JWT_SECRET = getJwtSecret();
+const demoUsers = new Map();
+
+function getDemoUsers() {
+  return demoUsers;
+}
 
 // OWASP Top 10 - A07 Identification and Authentication Failures
 // Se aplican límites de peticiones a los endpoints de login y registro para frenar ataques por fuerza bruta.
@@ -39,6 +44,7 @@ router.post('/register', async (req, res) => {
 
     const hasDatabase = Boolean(process.env.PG_CONNECTION_STRING || process.env.DATABASE_URL || process.env.POSTGRES_URL);
     if (!hasDatabase) {
+      const passwordHash = bcrypt.hashSync(password, 10);
       const user = {
         id: Date.now(),
         name,
@@ -47,10 +53,13 @@ router.post('/register', async (req, res) => {
         email,
         role,
         score: 0,
+        password: passwordHash,
       };
+      getDemoUsers().set(name.toLowerCase(), user);
+      getDemoUsers().set(email.toLowerCase(), user);
       const token = jwt.sign({ id: user.id, name: user.name, role: user.role }, JWT_SECRET, { expiresIn: '8h' });
       console.log('Registro en modo respaldo para:', user.name);
-      return res.json({ token, user });
+      return res.json({ token, user: { id: user.id, name: user.name, first_name: user.first_name, last_name: user.last_name, email: user.email, role: user.role, score: user.score } });
     }
 
     const [existingName, existingEmail] = await Promise.all([
@@ -97,22 +106,16 @@ router.post('/login', async (req, res) => {
 
     const hasDatabase = Boolean(process.env.PG_CONNECTION_STRING || process.env.DATABASE_URL || process.env.POSTGRES_URL);
     if (!hasDatabase) {
-      const user = {
-        id: 1,
-        name: credential,
-        first_name: 'Usuario',
-        last_name: 'Demo',
-        email: `${credential}@demo.local`,
-        role: 'student',
-        score: 0,
-        password: bcrypt.hashSync(password, 10),
-      };
-      const isValid = bcrypt.compareSync(password, user.password);
+      const storedUser = getDemoUsers().get(credential.toLowerCase()) || getDemoUsers().get(credential.toLowerCase());
+      if (!storedUser) {
+        return res.status(401).json({ error: 'Credenciales incorrectas. Por favor, verifica tu usuario y contraseña.' });
+      }
+      const isValid = bcrypt.compareSync(password, storedUser.password);
       if (!isValid) {
         return res.status(401).json({ error: 'Credenciales incorrectas. Por favor, verifica tu usuario y contraseña.' });
       }
-      const token = jwt.sign({ id: user.id, name: user.name, role: user.role }, JWT_SECRET, { expiresIn: '8h' });
-      return res.json({ token, user: { id: user.id, name: user.name, first_name: user.first_name, last_name: user.last_name, email: user.email, role: user.role, score: user.score } });
+      const token = jwt.sign({ id: storedUser.id, name: storedUser.name, role: storedUser.role }, JWT_SECRET, { expiresIn: '8h' });
+      return res.json({ token, user: { id: storedUser.id, name: storedUser.name, first_name: storedUser.first_name, last_name: storedUser.last_name, email: storedUser.email, role: storedUser.role, score: storedUser.score } });
     }
 
     const userRes = await pool.query(
