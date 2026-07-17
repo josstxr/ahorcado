@@ -1,3 +1,19 @@
-node_modules/
+# Dependencias
+# Evita subir miles de archivos de paquetes de node.
+/node_modules
+
+# Variables de entorno
+# Nunca subas tus secretos (contraseñas, API keys, etc.) a un repositorio público.
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs y archivos de sistema operativo
+logs
+*.log
+npm-debug.log*
+
+# Archivos de macOS
 .DS_Store
