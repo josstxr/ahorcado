@@ -72,14 +72,25 @@ router.post('/prepare-game', authToken, requireTeacher, async (req, res) => {
         return res.status(500).json({ error: 'La respuesta de la IA no tuvo el formato esperado. Inténtalo de nuevo.' });
       }
 
-      for (const rawWord of generatedWords) {
-        // Sanear cada palabra para asegurar que es una sola palabra en minúsculas.
-        const word = String(rawWord).trim().toLowerCase().split(' ')[0];
-        const newWord = await pool.query(
-          'INSERT INTO words (word, difficulty, theme) VALUES ($1, $2, $3) ON CONFLICT (word) DO UPDATE SET theme = EXCLUDED.theme RETURNING id, word, difficulty',
-          [word, difficulty, theme || 'IA']
-        );
-        words.push(newWord.rows[0]);
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        for (const rawWord of generatedWords) {
+          const word = String(rawWord).trim().toLowerCase().split(' ')[0];
+          if (!word) continue; // Ignorar palabras vacías que pueda devolver la IA
+          const newWord = await client.query(
+            'INSERT INTO words (word, difficulty, theme) VALUES ($1, $2, $3) ON CONFLICT (word) DO UPDATE SET theme = EXCLUDED.theme RETURNING id, word, difficulty',
+            [word, difficulty, theme || 'IA']
+          );
+          words.push(newWord.rows[0]);
+        }
+        await client.query('COMMIT');
+      } catch (dbErr) {
+        await client.query('ROLLBACK');
+        console.error('Error guardando palabras de IA en la BD:', dbErr);
+        return res.status(500).json({ error: 'Error al guardar las palabras generadas en la base de datos.' });
+      } finally {
+        client.release();
       }
     }
 
