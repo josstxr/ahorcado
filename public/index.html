@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <title>Ahorcado UTVAM</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="ambient ambient-one" aria-hidden="true"></div>
+  <div class="ambient ambient-two" aria-hidden="true"></div>
+  <header class="topbar glass">
+    <a class="brand" href="/" aria-label="Ahorcado UTVAM, inicio">
+      <span class="brand-mark" aria-hidden="true">A</span>
+      <span>Ahorcado <strong>UTVAM</strong></span>
+    </a>
+    <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Cambiar tema" aria-pressed="false">
+      <span class="theme-icon sun" aria-hidden="true">☀︎</span>
+      <span class="theme-icon moon" aria-hidden="true">☾</span>
+      <span class="theme-thumb" aria-hidden="true"></span>
+    </button>
+  </header>
+  <main class="app">
+    
+    <section class="panel" id="intro-panel">
+      <div class="eyebrow">Aprende · compite · supera tu récord</div>
+      <h1>Descubre la palabra.<br><span>Antes del último intento.</span></h1>
+      <p class="lede">Una experiencia de vocabulario para estudiantes y profesores de UTVAM.</p>
+      
+      <div id="login-view">
+        <form id="login-form" class="auth-form" novalidate>
+          <label for="auth-name">Usuario:</label>
+          <input 
+            type="text" 
+            id="auth-name" 
+            name="username"
+            maxlength="30" 
+            pattern="^[a-zA-Z0-9_]{3,30}$"
+            title="El usuario debe tener entre 3 y 30 caracteres alfanuméricos."
+            autocomplete="username"
+            required 
+          />
+          
+          <label for="auth-password">Contraseña:</label>
+          <input 
+            type="password" 
+            id="auth-password" 
+            name="password"
+            autocomplete="current-password"
+            required 
+          />
+          
+          <div class="auth-actions">
+            <button type="submit" id="login-btn">Iniciar sesión</button>
+            <button type="button" id="show-register-btn" class="secondary-button">Registrarse</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="message" id="auth-message" aria-live="polite"></div>
+      
+      <div class="leaderboard" id="leaderboard">
+        <div class="section-heading"><div><span class="eyebrow">Comunidad</span><h2>Ranking general</h2></div><span class="live-dot">En vivo</span></div>
+        <ol id="ranking-list"></ol>
+      </div>
+    </section>
+
+    <section class="panel hidden" id="home-panel">
+      <h1>Bienvenido, <span id="welcome-name"></span></h1>
+      <p id="welcome-role-text">Elige qué quieres hacer:</p>
+      <div class="home-actions">
+        <button id="play-game-btn" class="action-btn">
+          <div class="action-icon">🎮</div>
+          <div class="action-label">Jugar</div>
+        </button>
+        <button id="speed-challenge-btn" class="action-btn">
+          <div class="action-icon">⚡</div>
+          <div class="action-label">Palabra del Día</div>
+        </button>
+        <button id="teacher-btn" class="action-btn hidden" style="display: none;">
+          <div class="action-icon">📚</div>
+          <div class="action-label">Panel de Profesor</div>
+        </button>
+      </div>
+      <button id="logout-btn" class="secondary-button">Cerrar sesión</button>
+    </section>
+
+    <section class="panel hidden" id="game-panel">
+      <div class="game-header">
+        <div>
+          <span class="eyebrow">Ahorcado clásico</span><h2 id="game-status">Partida en juego</h2>
+          <p id="game-difficulty">Dificultad: fácil</p>
+        </div>
+        <div class="game-actions">
+          <select id="assignment-select" name="assignment">
+            <option value="">Partida libre</option>
+          </select>
+          <select id="difficulty" name="difficulty">
+            <option value="easy">Fácil</option>
+            <option value="medium">Medio</option>
+            <option value="hard">Difícil</option>
+          </select>
+          <button id="start-game-btn">Iniciar juego</button>
+          <button id="new-game" class="secondary-button hidden">Siguiente palabra</button>
+          <button id="back-to-home-btn" class="secondary-button">Volver</button>
+        </div>
+      </div>
+
+      <div class="board">
+        <div class="hangman-stage" aria-label="Progreso del ahorcado">
+          <svg class="hangman-drawing" viewBox="0 0 260 230" role="img" aria-labelledby="hangman-title">
+            <title id="hangman-title">Dibujo del ahorcado</title>
+            <g class="gallows"><path d="M28 210h205M65 210V20h112M66 54l34-34M177 20v31"/></g>
+            <g id="hangman-parts">
+              <circle class="hangman-part" data-step="1" cx="177" cy="75" r="24"/>
+              <path class="hangman-part" data-step="2" d="M177 99v59"/>
+              <path class="hangman-part" data-step="3" d="M177 115l-35 27"/>
+              <path class="hangman-part" data-step="4" d="M177 115l35 27"/>
+              <path class="hangman-part" data-step="5" d="M177 158l-30 40"/>
+              <path class="hangman-part" data-step="6" d="M177 158l30 40"/>
+            </g>
+          </svg>
+          <div class="attempt-meter"><span id="attempt-meter-fill"></span></div>
+        </div>
+        <div class="word-display" id="masked-word">_ _ _ _</div>
+        <div class="info-row">
+          <div>Intentos: <span id="attempts">0</span></div>
+          <div>Fallos: <span id="wrong-attempts">0</span> / 6</div>
+        </div>
+        <div class="keyboard-label"><span>Teclado visual</span><small>Selecciona una letra</small></div>
+        <div class="letters-row" id="letters-row" role="group" aria-label="Teclado de letras"></div>
+        <div class="hint" id="hint-area">Aún no hay pista.</div>
+      </div>
+
+      <form id="guess-form" class="guess-panel" onsubmit="return false;">
+        <label for="letter-input">Letra:</label>
+        <input 
+          type="text"
+          id="letter-input" 
+          maxlength="1" 
+          pattern="^[a-zñA-ZÑ]$"
+          title="Ingresa una única letra válida."
+          autocomplete="off" 
+        />
+        <button type="button" id="guess-btn">Intentar</button>
+        <div class="message" id="game-message" aria-live="polite"></div>
+      </form>
+    </section>
+
+    <section class="panel hidden" id="teacher-panel">
+      <h2>Panel de profesor</h2>
+      
+      <form id="word-form" class="auth-form" novalidate>
+        <label for="word-text">Palabra:</label>
+        <input 
+          type="text" 
+          id="word-text" 
+          name="wordText"
+          pattern="^[a-zA-ZñÑáéíóúÁÉÍÓÚüÜ]+$" 
+          title="La palabra solo debe contener letras."
+          required 
+        />
+        
+        <label for="word-difficulty">Dificultad:</label>
+        <select id="word-difficulty" name="wordDifficulty" required>
+          <option value="easy">Fácil</option>
+          <option value="medium">Medio</option>
+          <option value="hard">Difícil</option>
+        </select>
+
+        <label for="word-theme">Tema:</label>
+        <input type="text" id="word-theme" name="wordTheme" maxlength="50" placeholder="Ej. Animales" value="General" required />
+        
+        <div class="auth-actions">
+          <button type="submit" id="add-word-btn">Agregar palabra</button>
+          <button type="button" id="back-to-home-from-teacher-btn" class="secondary-button">Volver</button>
+        </div>
+      </form>
+      <div class="message" id="teacher-message" aria-live="polite"></div>
+
+      <hr class="section-divider">
+      <div class="teacher-workspace">
+        <div class="section-heading"><div><span class="eyebrow">Banco de contenido</span><h3>Temas y partidas</h3></div></div>
+        <div class="filter-grid">
+          <label for="word-filter">Filtrar palabras
+            <input id="word-filter" type="search" placeholder="Buscar por palabra…" autocomplete="off">
+          </label>
+          <label for="theme-filter">Filtrar por tema
+            <select id="theme-filter"><option value="">Todos los temas</option></select>
+          </label>
+        </div>
+        <div id="teacher-word-bank" class="word-bank" aria-live="polite"></div>
+
+        <form id="game-config-form" class="auth-form config-card">
+          <div class="config-grid">
+            <label for="game-theme">Tema de la partida
+              <input id="game-theme" maxlength="50" placeholder="Ej. Sistema solar" required>
+            </label>
+            <label for="game-word-count">Número de palabras
+              <select id="game-word-count"><option>3</option><option selected>5</option><option>10</option><option>15</option></select>
+            </label>
+            <label for="game-source">Origen
+              <select id="game-source"><option value="manual">Elegir del banco</option><option value="ai">Generar con IA</option></select>
+            </label>
+            <label for="game-config-difficulty">Dificultad
+              <select id="game-config-difficulty"><option value="easy">Fácil</option><option value="medium">Media</option><option value="hard">Difícil</option></select>
+            </label>
+          </div>
+          <label for="student-select">Asignar a alumnos
+            <select id="student-select" multiple size="5" aria-describedby="student-help"></select>
+            <small id="student-help">Usa Cmd/Ctrl para seleccionar varios. Déjalo vacío para preparar una partida propia.</small>
+          </label>
+          <div class="auth-actions">
+            <button type="submit" id="create-themed-game-btn">Crear y asignar partida</button>
+            <button type="button" id="start-prepared-game-btn" class="secondary-button hidden">Iniciar partida ahora</button>
+          </div>
+          <div class="message" id="game-config-message" aria-live="polite"></div>
+        </form>
+      </div>
+
+      <hr class="section-divider">
+      
+      <h3>Establecer Palabra del Día</h3>
+      <form id="daily-word-form" class="auth-form" novalidate>
+        <label for="daily-word-select">Seleccionar palabra:</label>
+        <select id="daily-word-select" name="dailyWordSelect" required>
+          <option value="">Cargando palabras...</option>
+        </select>
+        <button type="submit" id="set-daily-word-btn">Establecer como Palabra del Día</button>
+        <div class="message" id="daily-word-message" aria-live="polite"></div>
+      </form>
+    </section>
+
+    <section class="panel hidden" id="speed-challenge-panel">
+      <div class="challenge-header">
+        <button id="back-to-home-from-challenge-btn" class="secondary-button">Volver</button>
+      </div>
+
+      <div id="challenge-waiting" class="challenge-container hidden">
+        <h2>Palabra del Día</h2>
+        <p>Comprobando disponibilidad del servidor...</p>
+      </div>
+
+      <div id="challenge-game" class="challenge-container hidden">
+        <div class="challenge-timer">
+          <div class="timer-circle">
+            <svg viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="45" class="timer-bg"></circle>
+              <circle cx="50" cy="50" r="45" class="timer-progress" id="timer-progress"></circle>
+            </svg>
+            <div class="timer-text" id="timer-text">30s</div>
+          </div>
+        </div>
+
+        <div class="challenge-word">
+          <h3>Estructura de la palabra (Enmascarada):</h3>
+          <div class="challenge-masked-display" id="challenge-masked-word">* * * * *</div>
+        </div>
+
+        <div class="challenge-difficulty">
+          <span id="challenge-difficulty-badge">Fácil</span>
+        </div>
+
+        <form id="challenge-answer-form" class="challenge-answer-area" novalidate>
+          <p>Escribe la primera letra de la palabra lo más rápido posible:</p>
+          <input 
+            type="text" 
+            id="challenge-letter-input" 
+            name="challengeLetter"
+            maxlength="1" 
+            pattern="^[a-zñA-ZÑ]$"
+            title="Debes ingresar una única letra."
+            autocomplete="off"
+            placeholder="A"
+            required
+          />
+          <button type="submit" id="challenge-submit-btn">Responder</button>
+          <div class="message" id="challenge-message" aria-live="polite"></div>
+        </form>
+      </div>
+
+      <div id="challenge-result" class="challenge-container hidden">
+        <div class="result-content">
+          <h2 id="result-title">¡Procesado!</h2>
+          <p id="result-message">Evaluando precisión de la respuesta...</p>
+          <div class="result-stats">
+            <div class="stat">
+              <span class="stat-label">Puntos Obtenidos:</span>
+              <span class="stat-value" id="result-points">+0</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Tiempo de Respuesta:</span>
+              <span class="stat-value" id="result-time">0s</span>
+            </div>
+          </div>
+          <button type="button" id="challenge-leaderboard-btn">Ver Posiciones</button>
+        </div>
+      </div>
+
+      <div id="challenge-leaderboard" class="challenge-container hidden">
+        <h2>Clasificación de Hoy - Palabra del Día</h2>
+        <ol id="challenge-ranking-list" class="challenge-ranking"></ol>
+        <button type="button" id="challenge-back-btn">Volver al Menú</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="components/theme.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

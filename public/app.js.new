@@ -1,0 +1,245 @@
+import { state, setState } from './components/state.js';
+import { setMessage, showPanel } from './components/ui.js';
+import { loadLeaderboard as fetchLeaderboard, registerUser, loginUser } from './components/api.js';
+import { saveSession, loadSession, clearSession as clearStoredSession } from './components/session.js';
+import { initTraditionalGame } from './components/game.js';
+import { initDailyChallenge } from './components/challenge.js';
+import { initTeacherPanel } from './components/teacher.js';
+
+const elements = {
+  loginForm: document.getElementById('login-form'),
+  authName: document.getElementById('auth-name'),
+  authPassword: document.getElementById('auth-password'),
+  showRegisterBtn: document.getElementById('show-register-btn'),
+  authMessage: document.getElementById('auth-message'),
+  rankingList: document.getElementById('ranking-list'),
+  registerForm: document.getElementById('register-form'),
+  registerUsername: document.getElementById('register-username'),
+  registerFirstName: document.getElementById('register-first-name'),
+  registerLastName: document.getElementById('register-last-name'),
+  registerEmail: document.getElementById('register-email'),
+  registerRole: document.getElementById('register-role'),
+  registerPassword: document.getElementById('register-password'),
+  registerMessage: document.getElementById('register-message'),
+  backToLoginBtn: document.getElementById('back-to-login'),
+  introPanel: document.getElementById('intro-panel'),
+  homePanel: document.getElementById('home-panel'),
+  gamePanel: document.getElementById('game-panel'),
+  teacherPanel: document.getElementById('teacher-panel'),
+  speedChallengePanel: document.getElementById('speed-challenge-panel'),
+  welcomeName: document.getElementById('welcome-name'),
+  playGameBtn: document.getElementById('play-game-btn'),
+  speedChallengeBtn: document.getElementById('speed-challenge-btn'),
+  teacherBtn: document.getElementById('teacher-btn'),
+  logoutBtn: document.getElementById('logout-btn'),
+  backToHomeBtn: document.getElementById('back-to-home-btn'),
+  backToHomeFromTeacherBtn: document.getElementById('back-to-home-from-teacher-btn'),
+  backToHomeFromChallengeBtn: document.getElementById('back-to-home-from-challenge-btn'),
+  letterInput: document.getElementById('letter-input'),
+  guessBtn: document.getElementById('guess-btn'),
+  newGameBtn: document.getElementById('new-game'),
+  difficultySelect: document.getElementById('difficulty'),
+  lettersRow: document.getElementById('letters-row'),
+  maskedWord: document.getElementById('masked-word'),
+  attemptsEl: document.getElementById('attempts'),
+  wrongAttemptsEl: document.getElementById('wrong-attempts'),
+  difficultyEl: document.getElementById('game-difficulty'),
+  gameStatusEl: document.getElementById('game-status'),
+  hintArea: document.getElementById('hint-area'),
+  gameMessage: document.getElementById('game-message'),
+  wordForm: document.getElementById('word-form'),
+  wordText: document.getElementById('word-text'),
+  wordDifficulty: document.getElementById('word-difficulty'),
+  teacherMessage: document.getElementById('teacher-message'),
+  dailyWordForm: document.getElementById('daily-word-form'),
+  dailyWordSelect: document.getElementById('daily-word-select'),
+  dailyWordMessage: document.getElementById('daily-word-message'),
+  challengeWaiting: document.getElementById('challenge-waiting'),
+  challengeGame: document.getElementById('challenge-game'),
+  challengeResult: document.getElementById('challenge-result'),
+  challengeLeaderboard: document.getElementById('challenge-leaderboard'),
+  challengeMaskedWord: document.getElementById('challenge-masked-word'),
+  challengeDifficultyBadge: document.getElementById('challenge-difficulty-badge'),
+  challengeAnswerForm: document.getElementById('challenge-answer-form'),
+  challengeLetterInput: document.getElementById('challenge-letter-input'),
+  challengeMessage: document.getElementById('challenge-message'),
+  timerText: document.getElementById('timer-text'),
+  timerProgress: document.getElementById('timer-progress'),
+  resultTitle: document.getElementById('result-title'),
+  resultMessage: document.getElementById('result-message'),
+  resultPoints: document.getElementById('result-points'),
+  resultTime: document.getElementById('result-time'),
+  challengeLeaderboardBtn: document.getElementById('challenge-leaderboard-btn'),
+  challengeBackBtn: document.getElementById('challenge-back-btn'),
+  challengeRankingList: document.getElementById('challenge-ranking-list'),
+};
+
+async function loadLeaderboard() {
+  if (!elements.rankingList) return;
+  try {
+    const { data } = await fetchLeaderboard();
+    elements.rankingList.innerHTML = '';
+    data.forEach((player) => {
+      const li = document.createElement('li');
+      li.textContent = `${player.name} — ${player.score} pts`;
+      elements.rankingList.appendChild(li);
+    });
+  } catch (error) {
+    elements.rankingList.innerHTML = '<li>Error cargando ranking</li>';
+  }
+}
+
+async function setUserSession(data) {
+  setState({ token: data.token, user: data.user });
+  saveSession(data.token, data.user);
+
+  showPanel(elements.introPanel, false);
+  showPanel(elements.homePanel, true);
+  showPanel(elements.gamePanel, false);
+  showPanel(elements.teacherPanel, false);
+  showPanel(elements.speedChallengePanel, false);
+
+  if (elements.welcomeName) {
+    elements.welcomeName.textContent = data.user.name;
+  }
+
+  if (elements.teacherBtn) {
+    if (data.user.role === 'teacher') {
+      elements.teacherBtn.classList.remove('hidden');
+      elements.teacherBtn.style.display = 'flex';
+      teacherController.loadDailyWordsOptions();
+    } else {
+      elements.teacherBtn.classList.add('hidden');
+      elements.teacherBtn.style.display = 'none';
+    }
+  }
+
+  await loadLeaderboard();
+}
+
+function logout() {
+  clearStoredSession();
+  setState({ token: null, user: null });
+  showPanel(elements.homePanel, false);
+  showPanel(elements.gamePanel, false);
+  showPanel(elements.teacherPanel, false);
+  showPanel(elements.speedChallengePanel, false);
+  showPanel(elements.introPanel, true);
+  if (elements.authName) elements.authName.value = '';
+  if (elements.authPassword) elements.authPassword.value = '';
+  setMessage(elements.authMessage, 'Sesión cerrada');
+}
+
+const gameController = initTraditionalGame({
+  elements,
+  onGameReady: () => showPanel(elements.gamePanel, true),
+});
+
+const challengeController = initDailyChallenge({ elements });
+const teacherController = initTeacherPanel({ elements });
+
+if (elements.loginForm) {
+  elements.loginForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!elements.loginForm.checkValidity()) {
+      elements.loginForm.reportValidity();
+      return;
+    }
+
+    const { response, data } = await loginUser(elements.authName.value.trim(), elements.authPassword.value.trim());
+    if (response.ok && data.token) {
+      await setUserSession(data);
+    } else {
+      setMessage(elements.authMessage, data.error || 'Error de inicio de sesión');
+    }
+  });
+}
+
+if (elements.showRegisterBtn) {
+  elements.showRegisterBtn.addEventListener('click', () => {
+    window.location.href = '/register.html';
+  });
+}
+
+if (elements.registerForm) {
+  elements.registerForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!elements.registerForm.checkValidity()) {
+      elements.registerForm.reportValidity();
+      return;
+    }
+
+    const payload = {
+      name: elements.registerUsername.value.trim(),
+      first_name: elements.registerFirstName.value.trim(),
+      last_name: elements.registerLastName.value.trim(),
+      email: elements.registerEmail.value.trim().toLowerCase(),
+      role: elements.registerRole.value,
+      password: elements.registerPassword.value,
+    };
+
+    const { response, data } = await registerUser(payload);
+    if (response.ok && data.token) {
+      saveSession(data.token, data.user);
+      window.location.href = '/';
+    } else {
+      setMessage(elements.registerMessage, data.error || 'Error registrando usuario');
+    }
+  });
+}
+
+if (elements.backToLoginBtn) {
+  elements.backToLoginBtn.addEventListener('click', (event) => {
+    event.preventDefault();
+    window.location.href = '/';
+  });
+}
+
+if (elements.playGameBtn) {
+  elements.playGameBtn.addEventListener('click', () => {
+    showPanel(elements.homePanel, false);
+    showPanel(elements.gamePanel, true);
+    gameController.startNewGame();
+  });
+}
+
+if (elements.speedChallengeBtn) {
+  elements.speedChallengeBtn.addEventListener('click', () => {
+    showPanel(elements.homePanel, false);
+    showPanel(elements.speedChallengePanel, true);
+    challengeController.loadChallenge();
+  });
+}
+
+if (elements.teacherBtn) {
+  elements.teacherBtn.addEventListener('click', () => {
+    showPanel(elements.homePanel, false);
+    showPanel(elements.teacherPanel, true);
+  });
+}
+
+if (elements.logoutBtn) {
+  elements.logoutBtn.addEventListener('click', logout);
+}
+
+const backToHomeAction = () => {
+  showPanel(elements.homePanel, true);
+  showPanel(elements.gamePanel, false);
+  showPanel(elements.teacherPanel, false);
+  showPanel(elements.speedChallengePanel, false);
+  loadLeaderboard();
+};
+
+if (elements.backToHomeBtn) elements.backToHomeBtn.addEventListener('click', backToHomeAction);
+if (elements.backToHomeFromTeacherBtn) elements.backToHomeFromTeacherBtn.addEventListener('click', backToHomeAction);
+if (elements.backToHomeFromChallengeBtn) elements.backToHomeFromChallengeBtn.addEventListener('click', backToHomeAction);
+if (elements.challengeBackBtn) elements.challengeBackBtn.addEventListener('click', backToHomeAction);
+
+if (elements.loginForm && window.location.pathname === '/') {
+  const existingSession = loadSession();
+  if (existingSession) {
+    setUserSession(existingSession);
+  } else {
+    loadLeaderboard();
+  }
+}

@@ -1,0 +1,232 @@
+import { state, setState } from './state.js';
+import { setMessage } from './ui.js';
+import { createGame, submitGuess, loadMyAssignments } from './api.js';
+
+const alphabet = 'abcdefghijklmnñopqrstuvwxyz'.split('');
+
+function createSoundEngine() {
+  let context;
+  function tone(frequency, duration, type = 'sine', volume = 0.05, delay = 0) {
+    try {
+      context ||= new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = type;
+      oscillator.frequency.value = frequency;
+      gain.gain.setValueAtTime(0, context.currentTime + delay);
+      gain.gain.linearRampToValueAtTime(volume, context.currentTime + delay + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + delay + duration);
+      oscillator.connect(gain).connect(context.destination);
+      oscillator.start(context.currentTime + delay);
+      oscillator.stop(context.currentTime + delay + duration);
+    } catch {
+      // El juego sigue funcionando en navegadores sin Web Audio.
+    }
+  }
+  return {
+    correct() { tone(520, 0.12); tone(720, 0.16, 'sine', 0.05, 0.08); },
+    wrong() { tone(180, 0.2, 'sawtooth', 0.035); },
+    win() { [523, 659, 784, 1047].forEach((frequency, index) => tone(frequency, 0.28, 'sine', 0.05, index * 0.11)); },
+    lose() { [330, 277, 220].forEach((frequency, index) => tone(frequency, 0.3, 'triangle', 0.045, index * 0.14)); },
+  };
+}
+
+function celebrate() {
+  const colors = ['#8587ff', '#b078ff', '#5ee7a8', '#ffd166', '#ff7a9c'];
+  for (let index = 0; index < 55; index += 1) {
+    const piece = document.createElement('i');
+    piece.className = 'confetti-piece';
+    piece.style.left = `${Math.random() * 100}vw`;
+    piece.style.setProperty('--fall-delay', `${Math.random() * 0.35}s`);
+    piece.style.setProperty('--fall-time', `${1.8 + Math.random() * 1.5}s`);
+    piece.style.background = colors[index % colors.length];
+    document.body.appendChild(piece);
+    piece.addEventListener('animationend', () => piece.remove());
+  }
+}
+
+export function initTraditionalGame({ elements, onGameReady }) {
+  const {
+    letterInput, guessBtn, newGameBtn, startGameBtn, assignmentSelect, difficultySelect, lettersRow, maskedWord,
+    attemptsEl, wrongAttemptsEl, difficultyEl, gameStatusEl, hintArea, gameMessage,
+    hangmanParts, attemptMeterFill,
+  } = elements;
+  const sounds = createSoundEngine();
+  let previousState = null;
+  let requestPending = false;
+
+  function renderHangman(wrongAttempts = 0) {
+    hangmanParts?.forEach((part) => {
+      part.classList.toggle('visible', Number(part.dataset.step) <= wrongAttempts);
+    });
+    if (attemptMeterFill) attemptMeterFill.style.width = `${Math.min(100, (wrongAttempts / 6) * 100)}%`;
+  }
+
+  function renderKeypad(guessed = [], wrong = [], status = 'playing') {
+    if (!lettersRow) return;
+    lettersRow.innerHTML = '';
+    const correctSet = new Set(guessed || []);
+    const wrongSet = new Set(wrong || []);
+
+    alphabet.forEach((letter) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = letter.toUpperCase();
+      button.dataset.letter = letter;
+      button.setAttribute('aria-label', `Letra ${letter}`);
+      button.disabled = status !== 'playing' || correctSet.has(letter) || wrongSet.has(letter);
+      if (correctSet.has(letter)) button.classList.add('used', 'correct');
+      if (wrongSet.has(letter)) button.classList.add('used', 'wrong');
+      button.addEventListener('click', () => handleGuess(letter));
+      lettersRow.appendChild(button);
+    });
+  }
+
+  function announceResult(data) {
+    if (data.status === 'won') {
+      sounds.win();
+      celebrate();
+      setMessage(gameMessage, `🎉 ¡Excelente! Adivinaste “${data.word}”. Has completado la partida.`);
+      gameMessage?.classList.add('result-message', 'win');
+    } else if (data.status === 'lost') {
+      sounds.lose();
+      setMessage(gameMessage, `La palabra era “${data.word}”. ¡No te rindas, inténtalo de nuevo!`);
+      gameMessage?.classList.add('result-message', 'lose');
+    }
+  }
+
+  function setGameState(data) {
+    if (!data || !maskedWord) return;
+    const wasPlaying = previousState?.status === 'playing';
+    const newCorrectGuess = previousState && data.guessedLetters?.length > previousState.guessedLetters?.length;
+    const newWrongGuess = previousState && data.wrongAttempts > previousState.wrongAttempts;
+
+    setState({ gameId: data.id });
+    maskedWord.textContent = data.masked;
+    attemptsEl && (attemptsEl.textContent = data.attempts);
+    wrongAttemptsEl && (wrongAttemptsEl.textContent = data.wrongAttempts);
+    difficultyEl && (difficultyEl.textContent = `Dificultad: ${data.difficulty === 'easy' ? 'fácil' : data.difficulty === 'medium' ? 'media' : 'difícil'}`);
+    gameStatusEl && (gameStatusEl.textContent = data.status === 'playing' ? 'Partida en juego' : data.status === 'won' ? '¡Palabra descubierta!' : 'Fin de la partida');
+    hintArea && (hintArea.textContent = data.hint ? `Pista: la letra “${data.hint.toUpperCase()}” aparece en la palabra.` : 'La pista aparecerá después de tres fallos.');
+    renderHangman(data.wrongAttempts);
+    renderKeypad(data.guessedLetters, data.wrongLetters, data.status);
+    startGameBtn?.classList.add('hidden');
+    newGameBtn?.classList.toggle('hidden', data.status === 'playing');
+
+    gameMessage?.classList.remove('result-message', 'win', 'lose');
+    if (data.status !== 'playing') {
+      if (wasPlaying || !previousState) announceResult(data);
+    } else if (newCorrectGuess) {
+      sounds.correct();
+      setMessage(gameMessage, '¡Bien! Esa letra sí está en la palabra.');
+    } else if (newWrongGuess) {
+      sounds.wrong();
+      setMessage(gameMessage, `Esa letra no aparece. Te quedan ${6 - data.wrongAttempts} oportunidades.`);
+    } else {
+      setMessage(gameMessage, 'Selecciona una letra del teclado.');
+    }
+
+    previousState = data;
+    if (typeof onGameReady === 'function') onGameReady(data);
+  }
+
+  async function handleGuess(letter) {
+    if (!state.gameId || requestPending) return;
+    if (previousState && previousState.status !== 'playing') return;
+    const normalized = String(letter).toLowerCase();
+    if (!alphabet.includes(normalized)) return;
+    requestPending = true;
+    lettersRow?.classList.add('is-loading');
+    try {
+      const { response, data } = await submitGuess(normalized, state.gameId);
+      if (response.ok) setGameState(data);
+      else setMessage(gameMessage, data.error || 'No se pudo procesar la jugada.');
+    } catch {
+      setMessage(gameMessage, 'No se pudo conectar con el servidor.');
+    } finally {
+      requestPending = false;
+      lettersRow?.classList.remove('is-loading');
+    }
+  }
+
+  async function startNewGame() {
+    if (!state.user) {
+      const stored = localStorage.getItem('ahorcado_user');
+      if (stored) setState({ user: JSON.parse(stored) });
+      else return setMessage(gameMessage, 'Inicia sesión para comenzar una partida.');
+    }
+    let themedQueue = null;
+    try { themedQueue = JSON.parse(localStorage.getItem('themedGameQueue')); } catch { themedQueue = null; }
+    const queuedWord = themedQueue?.words?.[themedQueue.current];
+    if (themedQueue && !queuedWord) {
+      localStorage.removeItem('themedGameQueue');
+      setMessage(gameMessage, `🎉 Completaste la partida temática “${themedQueue.theme}”.`);
+      celebrate();
+      return;
+    }
+    previousState = null;
+    renderHangman(0);
+    const assignmentId = assignmentSelect?.value ? Number(assignmentSelect.value) : null;
+    const { response, data } = await createGame(
+      queuedWord?.difficulty || difficultySelect?.value || state.difficulty,
+      queuedWord?.id,
+      assignmentId
+    );
+    if (response.ok) {
+      if (queuedWord) {
+        themedQueue.current += 1;
+        localStorage.setItem('themedGameQueue', JSON.stringify(themedQueue));
+        setMessage(gameMessage, `Tema “${themedQueue.theme}” · palabra ${themedQueue.current} de ${themedQueue.words.length}`);
+      }
+      setGameState(data);
+    }
+    else setMessage(gameMessage, data.error || 'No se pudo iniciar la partida.');
+  }
+
+  letterInput?.addEventListener('input', () => {
+    letterInput.value = letterInput.value.replace(/[^a-zA-ZñÑ]/g, '');
+  });
+  guessBtn?.addEventListener('click', () => {
+    const letter = letterInput?.value.trim().toLowerCase();
+    if (letter?.length === 1) handleGuess(letter);
+    if (letterInput) letterInput.value = '';
+  });
+  newGameBtn?.addEventListener('click', startNewGame);
+  startGameBtn?.addEventListener('click', startNewGame);
+  document.addEventListener('keydown', (event) => {
+    if (!elements.gamePanel || elements.gamePanel.classList.contains('hidden') || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (/^[a-zA-ZñÑ]$/.test(event.key)) handleGuess(event.key);
+  });
+
+  renderHangman(0);
+  renderKeypad([], [], 'waiting');
+
+  async function loadGameOptions() {
+    setState({ gameId: null });
+    previousState = null;
+    maskedWord && (maskedWord.textContent = 'Pulsa “Iniciar juego”');
+    attemptsEl && (attemptsEl.textContent = '0');
+    wrongAttemptsEl && (wrongAttemptsEl.textContent = '0');
+    renderHangman(0);
+    renderKeypad([], [], 'waiting');
+    startGameBtn?.classList.remove('hidden');
+    newGameBtn?.classList.add('hidden');
+    setMessage(gameMessage, 'Elige partida libre o una actividad asignada.');
+    if (!assignmentSelect) return;
+    assignmentSelect.innerHTML = '<option value="">Partida libre · palabras aleatorias</option>';
+    try {
+      const { response, data } = await loadMyAssignments();
+      if (!response.ok) return;
+      data.forEach((assignment) => {
+        const option = document.createElement('option');
+        option.value = assignment.id;
+        option.textContent = `${assignment.theme} · ${assignment.current_index}/${assignment.word_count} · Prof. ${assignment.teacher_name}`;
+        assignmentSelect.appendChild(option);
+      });
+    } catch {
+      setMessage(gameMessage, 'Puedes iniciar una partida libre; no se cargaron las asignadas.');
+    }
+  }
+
+  return { setGameState, startNewGame, loadGameOptions };
+}
