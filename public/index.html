@@ -267,41 +267,40 @@
       </div>
 
       <div id="challenge-game" class="challenge-container hidden">
-        <div class="challenge-timer">
-          <div class="timer-circle">
-            <svg viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="45" class="timer-bg"></circle>
-              <circle cx="50" cy="50" r="45" class="timer-progress" id="timer-progress"></circle>
-            </svg>
-            <div class="timer-text" id="timer-text">30s</div>
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">Palabra del Día</span>
+            <h2 id="challenge-status">Partida diaria</h2>
+            <p id="challenge-difficulty-badge">Dificultad: fácil</p>
           </div>
         </div>
 
-        <div class="challenge-word">
-          <h3>Estructura de la palabra (Enmascarada):</h3>
-          <div class="challenge-masked-display" id="challenge-masked-word">* * * * *</div>
-        </div>
-
-        <div class="challenge-difficulty">
-          <span id="challenge-difficulty-badge">Fácil</span>
-        </div>
-
-        <form id="challenge-answer-form" class="challenge-answer-area" novalidate>
-          <p>Escribe la primera letra de la palabra lo más rápido posible:</p>
-          <input 
-            type="text" 
-            id="challenge-letter-input" 
-            name="challengeLetter"
-            maxlength="1" 
-            pattern="^[a-zñA-ZÑ]$"
-            title="Debes ingresar una única letra."
-            autocomplete="off"
-            placeholder="A"
-            required
-          />
-          <button type="submit" id="challenge-submit-btn">Responder</button>
+        <div class="board">
+          <div class="hangman-stage" aria-label="Progreso del ahorcado diario">
+            <svg class="hangman-drawing" viewBox="0 0 260 230" role="img" aria-labelledby="daily-hangman-title">
+              <title id="daily-hangman-title">Dibujo del ahorcado diario</title>
+              <g class="gallows"><path d="M28 210h205M65 210V20h112M66 54l34-34M177 20v31"/></g>
+              <g id="challenge-hangman-parts">
+                <circle class="challenge-hangman-part" data-step="1" cx="177" cy="75" r="24"/>
+                <path class="challenge-hangman-part" data-step="2" d="M177 99v59"/>
+                <path class="challenge-hangman-part" data-step="3" d="M177 115l-35 27"/>
+                <path class="challenge-hangman-part" data-step="4" d="M177 115l35 27"/>
+                <path class="challenge-hangman-part" data-step="5" d="M177 158l-30 40"/>
+                <path class="challenge-hangman-part" data-step="6" d="M177 158l30 40"/>
+              </g>
+            </svg>
+            <div class="attempt-meter"><span id="challenge-attempt-meter-fill"></span></div>
+          </div>
+          <div class="word-display" id="challenge-masked-word">_ _ _ _</div>
+          <div class="info-row">
+            <div>Intentos: <span id="challenge-attempts">0</span></div>
+            <div>Fallos: <span id="challenge-wrong-attempts">0</span> / 6</div>
+          </div>
+          <div class="keyboard-label"><span>Teclado visual</span><small>Selecciona una letra</small></div>
+          <div class="letters-row" id="challenge-letters-row" role="group" aria-label="Teclado de letras de palabra del día"></div>
+          <div class="hint" id="challenge-hint-area">La pista aparecerá después de tres fallos.</div>
           <div class="message" id="challenge-message" aria-live="polite"></div>
-        </form>
+        </div>
       </div>
 
       <div id="challenge-result" class="challenge-container hidden">

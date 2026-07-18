@@ -10,7 +10,7 @@ const router = express.Router();
 router.get('/', authToken, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT dw.id, w.word, w.difficulty, 
+      SELECT dw.id, dw.word_id, w.word, w.difficulty, 
              COALESCE(dwa.answer_letter, null) as user_answer,
              dwa.is_correct, dwa.points_earned, dwa.response_time_ms
       FROM daily_words dw
@@ -31,6 +31,7 @@ router.get('/', authToken, async (req, res) => {
 
     res.json({
       id: row.id,
+      wordId: row.word_id,
       word: maskedWord,
       difficulty: row.difficulty,
       user_answer: row.user_answer,

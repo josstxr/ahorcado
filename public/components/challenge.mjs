@@ -1,8 +1,8 @@
-import { state, setState } from './state.mjs';
+import { setState } from './state.mjs';
 import { setMessage } from './ui.mjs';
-import { loadDailyChallenge, submitDailyChallengeAnswer, loadDailyChallengeLeaderboard } from './api.mjs';
+import { createGame, loadDailyChallenge, submitGuess } from './api.mjs';
 
-let timerInterval = null;
+const alphabet = 'abcdefghijklmnñopqrstuvwxyz'.split('');
 
 export function initDailyChallenge({ elements }) {
   const {
@@ -12,65 +12,96 @@ export function initDailyChallenge({ elements }) {
     challengeLeaderboard,
     challengeMaskedWord,
     challengeDifficultyBadge,
-    challengeLetterInput,
+    challengeStatus,
+    challengeLettersRow,
+    challengeAttemptsEl,
+    challengeWrongAttemptsEl,
+    challengeHangmanParts,
+    challengeAttemptMeterFill,
+    challengeHintArea,
     challengeMessage,
-    timerText,
-    timerProgress,
-    resultTitle,
-    resultMessage,
-    resultPoints,
-    resultTime,
-    challengeLeaderboardBtn,
-    challengeBackBtn,
-    challengeRankingList,
-    challengeAnswerForm,
   } = elements;
 
-  function clearTimer() {
-    if (timerInterval) {
-      clearInterval(timerInterval);
-      timerInterval = null;
+  let dailyGameId = null;
+  let requestPending = false;
+
+  function renderHangman(wrongAttempts = 0) {
+    challengeHangmanParts?.forEach((part) => {
+      part.classList.toggle('visible', Number(part.dataset.step) <= wrongAttempts);
+    });
+    if (challengeAttemptMeterFill) {
+      challengeAttemptMeterFill.style.width = `${Math.min(100, (wrongAttempts / 6) * 100)}%`;
     }
   }
 
-  function startChallengeTimer() {
-    clearTimer();
-    const maxTime = 30;
-    let timeLeft = maxTime;
+  function renderKeypad(guessed = [], wrong = [], status = 'playing') {
+    if (!challengeLettersRow) return;
+    challengeLettersRow.innerHTML = '';
+    const correctSet = new Set(guessed || []);
+    const wrongSet = new Set(wrong || []);
 
-    timerInterval = setInterval(() => {
-      timeLeft -= 1;
-      if (timerText) timerText.textContent = `${timeLeft}s`;
-
-      const circumference = 2 * Math.PI * 45;
-      const offset = circumference - (timeLeft / maxTime) * circumference;
-      if (timerProgress) timerProgress.style.strokeDashoffset = offset;
-
-      if (timeLeft <= 0) {
-        clearTimer();
-        if (challengeLetterInput) challengeLetterInput.disabled = true;
-        setMessage(challengeMessage, 'Tiempo agotado');
-      }
-    }, 1000);
+    alphabet.forEach((letter) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = letter.toUpperCase();
+      button.dataset.letter = letter;
+      button.disabled = status !== 'playing' || correctSet.has(letter) || wrongSet.has(letter);
+      if (correctSet.has(letter)) button.classList.add('used', 'correct');
+      if (wrongSet.has(letter)) button.classList.add('used', 'wrong');
+      button.addEventListener('click', () => {
+        button.blur();
+        handleGuess(letter);
+      });
+      challengeLettersRow.appendChild(button);
+    });
   }
 
-  function showChallengeResult(isCorrect, points, responseTimeMs) {
-    if (challengeGame) challengeGame.classList.add('hidden');
-    if (challengeResult) challengeResult.classList.remove('hidden');
-
-    const resultEl = challengeResult?.querySelector('.result-content');
-    if (resultEl) {
-      resultEl.className = `result-content ${isCorrect ? 'correct' : 'incorrect'}`;
+  function renderGame(data) {
+    dailyGameId = data.id;
+    if (challengeMaskedWord) challengeMaskedWord.textContent = data.masked;
+    if (challengeAttemptsEl) challengeAttemptsEl.textContent = data.attempts;
+    if (challengeWrongAttemptsEl) challengeWrongAttemptsEl.textContent = data.wrongAttempts;
+    if (challengeDifficultyBadge) {
+      challengeDifficultyBadge.textContent = `Dificultad: ${data.difficulty === 'easy' ? 'fácil' : data.difficulty === 'medium' ? 'media' : 'difícil'}`;
     }
-
-    if (resultTitle) resultTitle.textContent = isCorrect ? '¡Correcto!' : 'Respuesta Incorrecta';
-    if (resultMessage) {
-      resultMessage.textContent = isCorrect
-        ? 'Agilidad mental comprobada.'
-        : 'Has fallado la inicial de la palabra del día.';
+    if (challengeStatus) {
+      challengeStatus.textContent = data.status === 'playing'
+        ? 'Partida diaria'
+        : data.status === 'won'
+          ? '¡Palabra descubierta!'
+          : 'Fin de la partida diaria';
     }
-    if (resultPoints) resultPoints.textContent = isCorrect ? `+${points}` : '0';
-    if (resultTime) resultTime.textContent = responseTimeMs != null ? `${(responseTimeMs / 1000).toFixed(2)}s` : '--';
+    if (challengeHintArea) {
+      challengeHintArea.textContent = data.hint
+        ? `Pista: la letra “${data.hint.toUpperCase()}” aparece en la palabra.`
+        : 'La pista aparecerá después de tres fallos.';
+    }
+    renderHangman(data.wrongAttempts);
+    renderKeypad(data.guessedLetters, data.wrongLetters, data.status);
+
+    if (data.status === 'won') {
+      setMessage(challengeMessage, `¡Excelente! Adivinaste “${data.word}”.`);
+    } else if (data.status === 'lost') {
+      setMessage(challengeMessage, `La palabra era “${data.word}”. Inténtalo de nuevo mañana.`);
+    } else {
+      setMessage(challengeMessage, 'Selecciona una letra para resolver la palabra del día.');
+    }
+  }
+
+  async function handleGuess(letter) {
+    if (!dailyGameId || requestPending) return;
+    requestPending = true;
+    challengeLettersRow?.classList.add('is-loading');
+    try {
+      const { response, data } = await submitGuess(letter, dailyGameId);
+      if (response.ok) renderGame(data);
+      else setMessage(challengeMessage, data.error || 'No se pudo procesar la letra.');
+    } catch {
+      setMessage(challengeMessage, 'No se pudo conectar con el servidor.');
+    } finally {
+      requestPending = false;
+      challengeLettersRow?.classList.remove('is-loading');
+    }
   }
 
   async function loadChallenge() {
@@ -79,124 +110,29 @@ export function initDailyChallenge({ elements }) {
       if (challengeGame) challengeGame.classList.add('hidden');
       if (challengeResult) challengeResult.classList.add('hidden');
       if (challengeLeaderboard) challengeLeaderboard.classList.add('hidden');
+      setMessage(challengeWaiting, 'Comprobando disponibilidad del servidor...');
 
       const { response, data } = await loadDailyChallenge();
-      if (!response.ok) {
-        setMessage(challengeWaiting, data.error || 'Error cargando el desafío diario');
+      if (!response.ok || !data.wordId) {
+        setMessage(challengeWaiting, data.message || data.error || 'No hay palabra del día configurada.');
         return;
       }
 
-      if (!data.id) {
-        setMessage(challengeWaiting, data.message || 'No hay palabra del día configurada.');
+      setState({ dailyWordId: data.id });
+      const gameResponse = await createGame(data.difficulty, data.wordId);
+      if (!gameResponse.response.ok) {
+        setMessage(challengeWaiting, gameResponse.data.error || 'No se pudo iniciar la palabra del día.');
         return;
       }
 
-      setState({ dailyWordId: data.id, challengeStartTime: Date.now() });
-      if (challengeMaskedWord) challengeMaskedWord.textContent = data.word;
-      if (challengeDifficultyBadge) {
-        challengeDifficultyBadge.textContent = data.difficulty === 'easy' ? 'Fácil' : data.difficulty === 'medium' ? 'Medio' : 'Difícil';
-        challengeDifficultyBadge.className = `challenge-difficulty-badge ${data.difficulty}`;
-      }
-
-      if (data.user_answer) {
-        if (challengeWaiting) challengeWaiting.classList.add('hidden');
-        showChallengeResult(data.is_correct, data.points_earned, data.response_time_ms);
-      } else {
-        if (challengeWaiting) challengeWaiting.classList.add('hidden');
-        if (challengeGame) challengeGame.classList.remove('hidden');
-        if (challengeLetterInput) {
-          challengeLetterInput.disabled = false;
-          challengeLetterInput.value = '';
-        }
-        startChallengeTimer();
-      }
+      if (challengeWaiting) challengeWaiting.classList.add('hidden');
+      if (challengeGame) challengeGame.classList.remove('hidden');
+      renderGame(gameResponse.data);
     } catch (error) {
-      console.error('Error loading speed challenge:', error);
-      setMessage(challengeWaiting, 'Error cargando el desafío diario');
+      console.error('Error loading daily hangman:', error);
+      setMessage(challengeWaiting, 'Error cargando la palabra del día.');
     }
   }
 
-  async function submitAnswer() {
-    if (!state.dailyWordId) return;
-
-    const letter = (challengeLetterInput?.value || '').trim().toLowerCase();
-    if (!letter || letter.length !== 1) {
-      setMessage(challengeMessage, 'Ingresa una letra válida');
-      return;
-    }
-
-    try {
-      clearTimer();
-      const { response, data } = await submitDailyChallengeAnswer(state.dailyWordId, letter);
-      if (response.ok) {
-        showChallengeResult(data.isCorrect, data.pointsEarned, data.responseTimeMs);
-      } else {
-        setMessage(challengeMessage, data.error || 'Error al procesar respuesta');
-      }
-    } catch (error) {
-      console.error('Error submitting response:', error);
-      setMessage(challengeMessage, 'Error de conectividad');
-    }
-  }
-
-  async function showLeaderboard() {
-    if (!state.dailyWordId) return;
-
-    try {
-      const { response, data } = await loadDailyChallengeLeaderboard(state.dailyWordId);
-      if (!response.ok) return;
-
-      if (challengeRankingList) {
-        challengeRankingList.innerHTML = '';
-        data.forEach((player) => {
-          const li = document.createElement('li');
-          const nameSpan = document.createElement('span');
-          nameSpan.className = 'player-name';
-          nameSpan.textContent = `${player.first_name} ${player.last_name}`;
-
-          const pointsSpan = document.createElement('span');
-          pointsSpan.className = 'player-points';
-          pointsSpan.textContent = `${player.points_earned} pts (${(player.response_time_ms / 1000).toFixed(2)}s)`;
-
-          li.appendChild(nameSpan);
-          li.appendChild(pointsSpan);
-          challengeRankingList.appendChild(li);
-        });
-      }
-
-      if (challengeResult) challengeResult.classList.add('hidden');
-      if (challengeLeaderboard) challengeLeaderboard.classList.remove('hidden');
-    } catch (error) {
-      console.error('Error loading leaderboard:', error);
-    }
-  }
-
-  if (challengeLetterInput) {
-    challengeLetterInput.addEventListener('input', () => {
-      challengeLetterInput.value = challengeLetterInput.value.replace(/[^a-zA-ZñÑ]/g, '');
-    });
-  }
-
-  if (challengeAnswerForm) {
-    challengeAnswerForm.addEventListener('submit', (event) => {
-      event.preventDefault();
-      if (!challengeAnswerForm.checkValidity()) {
-        challengeAnswerForm.reportValidity();
-        return;
-      }
-      submitAnswer();
-    });
-  }
-
-  if (challengeLeaderboardBtn) {
-    challengeLeaderboardBtn.addEventListener('click', showLeaderboard);
-  }
-
-  if (challengeBackBtn) {
-    challengeBackBtn.addEventListener('click', () => {
-      clearTimer();
-    });
-  }
-
-  return { loadChallenge, showLeaderboard };
+  return { loadChallenge };
 }
