@@ -1,6 +1,6 @@
 import { state, setState } from './state.mjs';
 import { setMessage } from './ui.mjs';
-import { createGame, submitGuess, submitWordGuess, loadMyAssignments } from './api.mjs';
+import { createGame, submitGuess, submitWordGuess, loadMyAssignments, loadGameExplanation } from './api.mjs';
 
 const alphabet = 'abcdefghijklmnñopqrstuvwxyz'.split('');
 
@@ -55,6 +55,7 @@ export function initTraditionalGame({ elements, onGameReady }) {
   let previousState = null;
   let requestPending = false;
   const pendingLetters = new Set();
+  let explainedGameId = null;
 
   function renderHangman(wrongAttempts = 0) {
     hangmanParts?.forEach((part) => {
@@ -129,6 +130,22 @@ export function initTraditionalGame({ elements, onGameReady }) {
     }
   }
 
+  async function showLearningExplanation(data) {
+    if (!data?.id || data.status === 'playing' || explainedGameId === data.id || !hintArea) return;
+    explainedGameId = data.id;
+    hintArea.textContent = 'Generando explicación de aprendizaje...';
+    try {
+      const { response, data: explanationData } = await loadGameExplanation(data.id);
+      if (!response.ok || !explanationData.explanation) {
+        hintArea.textContent = data.learningHint || 'Repasa la palabra y vuelve a intentarlo en una nueva ronda.';
+        return;
+      }
+      hintArea.textContent = `Aprendizaje: ${explanationData.explanation}`;
+    } catch {
+      hintArea.textContent = data.learningHint || 'Repasa la palabra y vuelve a intentarlo en una nueva ronda.';
+    }
+  }
+
   function setGameState(data) {
     if (!data || !maskedWord) return;
     const wasPlaying = previousState?.status === 'playing';
@@ -147,7 +164,9 @@ export function initTraditionalGame({ elements, onGameReady }) {
     wrongAttemptsEl && (wrongAttemptsEl.textContent = data.wrongAttempts);
     difficultyEl && (difficultyEl.textContent = `Dificultad: ${data.difficulty === 'easy' ? 'fácil' : data.difficulty === 'medium' ? 'media' : 'difícil'}`);
     gameStatusEl && (gameStatusEl.textContent = data.status === 'playing' ? 'Partida en juego' : data.status === 'won' ? '¡Palabra descubierta!' : 'Fin de la partida');
-    hintArea && (hintArea.textContent = data.hint ? `Pista: se reveló la letra “${data.hint.toUpperCase()}”.` : 'Recibes una pista cada dos fallos.');
+    hintArea && (hintArea.textContent = data.hint
+      ? `Pista: se reveló la letra “${data.hint.toUpperCase()}”. ${data.learningHint || ''}`.trim()
+      : 'Recibes una pista cada dos fallos.');
     renderHangman(data.wrongAttempts);
     renderKeypad(data.guessedLetters, data.wrongLetters, data.status);
     startGameBtn?.classList.add('hidden');
@@ -158,6 +177,7 @@ export function initTraditionalGame({ elements, onGameReady }) {
       if (wasPlaying || !previousState) {
         announceResult(data);
       }
+      showLearningExplanation(data);
     } else if (solvedWord) {
       sounds.win();
       setMessage(gameMessage, '¡Correcto! Resolviste la palabra completa.');
@@ -216,6 +236,7 @@ export function initTraditionalGame({ elements, onGameReady }) {
 
   async function startNewGame() {
     pendingLetters.clear();
+    explainedGameId = null;
     if (!state.user) {
       const stored = localStorage.getItem('ahorcado_user');
       if (stored) setState({ user: JSON.parse(stored) });
@@ -231,6 +252,7 @@ export function initTraditionalGame({ elements, onGameReady }) {
       return;
     }
     previousState = null;
+    explainedGameId = null;
     setState({ gameId: null });
     renderHangman(0);
     renderKeypad([], [], 'waiting');
@@ -273,6 +295,7 @@ export function initTraditionalGame({ elements, onGameReady }) {
   async function loadGameOptions() {
     setState({ gameId: null });
     previousState = null;
+    explainedGameId = null;
     maskedWord && (maskedWord.textContent = 'Pulsa “Iniciar juego”');
     attemptsEl && (attemptsEl.textContent = '0');
     wrongAttemptsEl && (wrongAttemptsEl.textContent = '0');

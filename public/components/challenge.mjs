@@ -1,6 +1,6 @@
 import { setState } from './state.mjs';
 import { setMessage } from './ui.mjs';
-import { createGame, loadDailyChallenge, submitGuess, submitWordGuess } from './api.mjs';
+import { createGame, loadDailyChallenge, submitGuess, submitWordGuess, loadGameExplanation } from './api.mjs';
 
 const alphabet = 'abcdefghijklmnñopqrstuvwxyz'.split('');
 
@@ -28,6 +28,7 @@ export function initDailyChallenge({ elements }) {
   let requestPending = false;
   let currentGame = null;
   const pendingLetters = new Set();
+  let explainedGameId = null;
 
   function renderHangman(wrongAttempts = 0) {
     challengeHangmanParts?.forEach((part) => {
@@ -90,6 +91,22 @@ export function initDailyChallenge({ elements }) {
     button.disabled = false;
   }
 
+  async function showLearningExplanation(data) {
+    if (!data?.id || data.status === 'playing' || explainedGameId === data.id || !challengeHintArea) return;
+    explainedGameId = data.id;
+    challengeHintArea.textContent = 'Generando explicación de aprendizaje...';
+    try {
+      const { response, data: explanationData } = await loadGameExplanation(data.id);
+      if (!response.ok || !explanationData.explanation) {
+        challengeHintArea.textContent = data.learningHint || 'Repasa la palabra del día antes de volver al inicio.';
+        return;
+      }
+      challengeHintArea.textContent = `Aprendizaje: ${explanationData.explanation}`;
+    } catch {
+      challengeHintArea.textContent = data.learningHint || 'Repasa la palabra del día antes de volver al inicio.';
+    }
+  }
+
   function renderGame(data) {
     [...pendingLetters].forEach((letter) => {
       if (data.guessedLetters?.includes(letter) || data.wrongLetters?.includes(letter)) {
@@ -113,7 +130,7 @@ export function initDailyChallenge({ elements }) {
     }
     if (challengeHintArea) {
       challengeHintArea.textContent = data.hint
-        ? `Pista: se reveló la letra “${data.hint.toUpperCase()}”.`
+        ? `Pista: se reveló la letra “${data.hint.toUpperCase()}”. ${data.learningHint || ''}`.trim()
         : 'Recibes una pista cada dos fallos.';
     }
     renderHangman(data.wrongAttempts);
@@ -121,8 +138,10 @@ export function initDailyChallenge({ elements }) {
 
     if (data.status === 'won') {
       setMessage(challengeMessage, `¡Excelente! Adivinaste “${data.word}”.`);
+      showLearningExplanation(data);
     } else if (data.status === 'lost') {
       setMessage(challengeMessage, `La palabra era “${data.word}”. Inténtalo de nuevo mañana.`);
+      showLearningExplanation(data);
     } else {
       setMessage(challengeMessage, 'Selecciona una letra para resolver la palabra del día.');
     }
@@ -172,6 +191,7 @@ export function initDailyChallenge({ elements }) {
       if (challengeLeaderboard) challengeLeaderboard.classList.add('hidden');
       setMessage(challengeWaiting, 'Comprobando disponibilidad del servidor...');
       currentGame = null;
+      explainedGameId = null;
       pendingLetters.clear();
 
       const { response, data } = await loadDailyChallenge();

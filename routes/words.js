@@ -4,7 +4,7 @@ const { authToken, requireTeacher } = require('../middleware/auth');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const router = express.Router();
-const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash';
+const DEFAULT_GEMINI_MODEL = 'gemini-flash-latest';
 const GEMINI_MODEL_FALLBACKS = [
   DEFAULT_GEMINI_MODEL,
   'gemini-flash-latest',

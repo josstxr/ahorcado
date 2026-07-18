@@ -1,10 +1,47 @@
 const express = require('express');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { pool } = require('../db');
 const { authToken } = require('../middleware/auth');
 
 const router = express.Router();
 const MAX_WRONG = 6;
 const HINT_EVERY_WRONG = 2;
+const DEFAULT_GEMINI_MODEL = 'gemini-flash-latest';
+const GEMINI_MODEL_FALLBACKS = [
+  DEFAULT_GEMINI_MODEL,
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+];
+
+function resolveGeminiModels() {
+  const configured = process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
+  const preferred = configured === 'gemini-pro' ? DEFAULT_GEMINI_MODEL : configured;
+  return [...new Set([preferred, ...GEMINI_MODEL_FALLBACKS])];
+}
+
+async function generateContentWithFallback(prompt) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  let lastError;
+  for (const modelName of resolveGeminiModels()) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent(prompt);
+      return result.response.text().trim();
+    } catch (error) {
+      lastError = error;
+      const message = String(error?.message || error);
+      if (!message.includes('[404 Not Found]') && !message.includes('models/gemini-pro')) {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError;
+}
 
 function normalizeLetter(value) {
   return String(value).toLowerCase().replace(/ñ/g, '__enie__').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/__enie__/g, 'ñ');
@@ -60,14 +97,20 @@ function computeScore(status, difficulty, wrongAttempts) {
 
 // OWASP Top 10 - A04 Insecure Design / A01 Broken Access Control
 // El estado del juego se construye a partir de datos persistidos en BD y no se generan pistas dinámicas en memoria.
+function fallbackLearningExplanation(word, theme) {
+  const cleanTheme = theme || 'vocabulario general';
+  return `“${word}” pertenece al tema ${cleanTheme}. Repásala escribiendo una definición con tus propias palabras y crea una oración donde la uses correctamente. Pregunta de repaso: ¿qué pista del tema te ayudó a reconocerla?`;
+}
+
 async function getGameState(game) {
-  const wordRes = await pool.query('SELECT word FROM words WHERE id = $1', [game.word_id]);
+  const wordRes = await pool.query('SELECT word, theme FROM words WHERE id = $1', [game.word_id]);
   if (!wordRes.rows.length) {
     // Esto indica un problema de integridad de datos, pero debemos manejarlo para no crashear el servidor.
     console.error(`Error de integridad: No se encontró la palabra con id ${game.word_id} para la partida ${game.id}`);
     throw new Error('No se pudo encontrar la palabra asociada a la partida.');
   }
   const word = wordRes.rows[0].word;
+  const theme = wordRes.rows[0].theme || 'General';
 
   const gameState = {
     id: game.id,
@@ -80,6 +123,10 @@ async function getGameState(game) {
     wrongAttempts: game.wrong_attempts,
     attempts: game.attempts,
     hint: game.revealed_hint, 
+    theme,
+    learningHint: game.wrong_attempts >= HINT_EVERY_WRONG
+      ? `Tema: ${theme}. Usa las letras reveladas para conectar la palabra con este concepto.`
+      : null,
     maxWrong: MAX_WRONG,
   };
 
@@ -334,6 +381,67 @@ router.post('/solve', authToken, async (req, res) => {
     res.status(500).json({ error: 'Error al resolver la palabra' });
   } finally {
     client.release();
+  }
+});
+
+router.post('/explain', authToken, async (req, res) => {
+  try {
+    const gameId = parseInt(req.body.gameId, 10);
+    if (!gameId) {
+      return res.status(400).json({ error: 'gameId es obligatorio' });
+    }
+
+    const gameRes = await pool.query(
+      `SELECT g.id, g.player_id, g.status, g.difficulty, w.word, COALESCE(w.theme, 'General') AS theme
+       FROM games g
+       JOIN words w ON w.id = g.word_id
+       WHERE g.id = $1 AND g.player_id = $2`,
+      [gameId, req.user.id]
+    );
+
+    if (!gameRes.rows.length) {
+      return res.status(404).json({ error: 'Partida no encontrada' });
+    }
+
+    const game = gameRes.rows[0];
+    if (game.status === 'playing') {
+      return res.status(400).json({ error: 'Termina la partida para ver la explicación.' });
+    }
+
+    const fallback = fallbackLearningExplanation(game.word, game.theme);
+    const prompt = `
+Explica en español para estudiantes de forma clara y breve.
+Palabra: "${game.word}"
+Tema: "${game.theme}"
+Dificultad: "${game.difficulty}"
+
+Responde con:
+1. Una explicación de máximo 2 frases.
+2. Una mini pregunta de repaso.
+
+Evita listas largas, evita markdown y no inventes datos muy específicos si el tema es ambiguo.
+`.trim();
+
+    try {
+      const explanation = await generateContentWithFallback(prompt);
+      return res.json({
+        word: game.word,
+        theme: game.theme,
+        explanation: explanation || fallback,
+        source: explanation ? 'gemini' : 'local',
+      });
+    } catch (error) {
+      console.error('Error generando explicación con Gemini:', error);
+      return res.json({
+        word: game.word,
+        theme: game.theme,
+        explanation: fallback,
+        source: 'local',
+      });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al generar explicación de aprendizaje' });
   }
 });
 
