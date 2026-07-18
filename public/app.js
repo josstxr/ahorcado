@@ -6,6 +6,8 @@ import { initTraditionalGame } from './components/game.js';
 import { initDailyChallenge } from './components/challenge.js';
 import { initTeacherPanel } from './components/teacher.js';
 
+const APP_BUILD = '2026-07-18-auth-ui-fix';
+
 const elements = {
   loginForm: document.getElementById('login-form'),
   authName: document.getElementById('auth-name'),
