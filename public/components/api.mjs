@@ -1,4 +1,4 @@
-import { state } from './state.js';
+import { state } from './state.mjs';
 
 /**
  * Un wrapper de fetch centralizado para todas las llamadas a la API.

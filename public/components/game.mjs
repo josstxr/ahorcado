@@ -1,6 +1,6 @@
-import { state, setState } from './state.js';
-import { setMessage } from './ui.js';
-import { createGame, submitGuess, loadMyAssignments } from './api.js';
+import { state, setState } from './state.mjs';
+import { setMessage } from './ui.mjs';
+import { createGame, submitGuess, loadMyAssignments } from './api.mjs';
 
 const alphabet = 'abcdefghijklmnñopqrstuvwxyz'.split('');
 

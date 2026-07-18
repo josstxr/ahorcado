@@ -1,10 +1,10 @@
-import { state, setState } from './components/state.js';
-import { setMessage, showPanel } from './components/ui.js';
-import { loadLeaderboard as fetchLeaderboard, registerUser, loginUser } from './components/api.js';
-import { saveSession, loadSession, clearSession as clearStoredSession } from './components/session.js';
-import { initTraditionalGame } from './components/game.js';
-import { initDailyChallenge } from './components/challenge.js';
-import { initTeacherPanel } from './components/teacher.js';
+import { state, setState } from './components/state.mjs';
+import { setMessage, showPanel } from './components/ui.mjs';
+import { loadLeaderboard as fetchLeaderboard, registerUser, loginUser } from './components/api.mjs';
+import { saveSession, loadSession, clearSession as clearStoredSession } from './components/session.mjs';
+import { initTraditionalGame } from './components/game.mjs';
+import { initDailyChallenge } from './components/challenge.mjs';
+import { initTeacherPanel } from './components/teacher.mjs';
 
 const APP_BUILD = '2026-07-18-auth-ui-fix';
 

@@ -1,4 +1,4 @@
-import { state, setState } from './state.js';
+import { state, setState } from './state.mjs';
 
 export function saveSession(token, user) {
   localStorage.setItem('ahorcado_token', token);

@@ -1,6 +1,6 @@
-import { state, setState } from './state.js';
-import { setMessage } from './ui.js';
-import { loadDailyChallenge, submitDailyChallengeAnswer, loadDailyChallengeLeaderboard } from './api.js';
+import { state, setState } from './state.mjs';
+import { setMessage } from './ui.mjs';
+import { loadDailyChallenge, submitDailyChallengeAnswer, loadDailyChallengeLeaderboard } from './api.mjs';
 
 let timerInterval = null;
 

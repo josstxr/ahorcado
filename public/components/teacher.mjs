@@ -1,5 +1,5 @@
-import { setMessage } from './ui.js';
-import { apiFetch, loadWordsForTeacher, setDailyWord } from './api.js';
+import { setMessage } from './ui.mjs';
+import { apiFetch, loadWordsForTeacher, setDailyWord } from './api.mjs';
 
 const difficultyLabels = { easy: 'Fácil', medium: 'Media', hard: 'Difícil' };
 
