@@ -94,12 +94,38 @@ export function initTraditionalGame({ elements, onGameReady }) {
       button.disabled = status !== 'playing' || correctSet.has(letter) || wrongSet.has(letter);
       if (correctSet.has(letter)) button.classList.add('used', 'correct');
       if (wrongSet.has(letter)) button.classList.add('used', 'wrong');
-      button.addEventListener('click', () => {
+      button.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
         button.blur();
         handleGuess(letter);
       });
+      button.addEventListener('click', (event) => {
+        if (event.detail === 0) handleGuess(letter);
+      });
       lettersRow.appendChild(button);
     });
+  }
+
+  function getLetterButton(letter) {
+    return lettersRow?.querySelector(`button[data-letter="${letter}"]`);
+  }
+
+  function isAlreadyTried(letter) {
+    return previousState?.guessedLetters?.includes(letter) || previousState?.wrongLetters?.includes(letter);
+  }
+
+  function markLetterPending(letter) {
+    const button = getLetterButton(letter);
+    if (!button || button.disabled) return;
+    button.classList.add('used', 'pending');
+    button.disabled = true;
+  }
+
+  function clearLetterPending(letter) {
+    const button = getLetterButton(letter);
+    if (!button?.classList.contains('pending')) return;
+    button.classList.remove('used', 'pending');
+    button.disabled = false;
   }
 
   function announceResult(data) {
@@ -162,12 +188,18 @@ export function initTraditionalGame({ elements, onGameReady }) {
     if (previousState && previousState.status !== 'playing') return;
     const normalized = String(letter).toLowerCase();
     if (!alphabet.includes(normalized)) return;
+    if (isAlreadyTried(normalized)) return;
+    markLetterPending(normalized);
     requestPending = true;
     try {
       const { response, data } = await submitGuess(normalized, state.gameId);
       if (response.ok) setGameState(data);
-      else setMessage(gameMessage, data.error || 'No se pudo procesar la jugada.');
+      else {
+        clearLetterPending(normalized);
+        setMessage(gameMessage, data.error || 'No se pudo procesar la jugada.');
+      }
     } catch {
+      clearLetterPending(normalized);
       setMessage(gameMessage, 'No se pudo conectar con el servidor.');
     } finally {
       requestPending = false;
@@ -238,7 +270,7 @@ export function initTraditionalGame({ elements, onGameReady }) {
   newGameBtn?.addEventListener('click', startNewGame);
   startGameBtn?.addEventListener('click', startNewGame);
   document.addEventListener('keydown', (event) => {
-    if (!elements.gamePanel || elements.gamePanel.classList.contains('hidden') || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (!elements.gamePanel || elements.gamePanel.classList.contains('hidden') || event.repeat || event.ctrlKey || event.metaKey || event.altKey) return;
     if (/^[a-zA-ZñÑ]$/.test(event.key)) handleGuess(event.key);
   });
 

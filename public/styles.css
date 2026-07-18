@@ -1051,3 +1051,32 @@ button{border:0;border-radius:16px;padding:14px 19px;color:#fff;font-weight:720;
   background: rgba(30, 36, 50, .92);
   border-color: rgba(226, 232, 240, .24);
 }
+
+/* Faster game interactions */
+button,
+.letters-row button {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.letters-row button {
+  user-select: none;
+  transition: background .08s ease, border-color .08s ease, color .08s ease, opacity .08s ease, transform .06s ease;
+}
+
+.letters-row button:not(:disabled):active {
+  transform: scale(.96);
+}
+
+.letters-row button.pending {
+  color: var(--primary);
+  background: rgba(91, 92, 240, .16);
+  border-color: rgba(91, 92, 240, .38);
+  opacity: .95;
+}
+
+[data-theme="dark"] .letters-row button.pending {
+  color: #d7ddff;
+  background: rgba(169, 180, 255, .18);
+  border-color: rgba(169, 180, 255, .48);
+}
