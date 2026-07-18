@@ -91,18 +91,26 @@
           <span class="eyebrow">Ahorcado clásico</span><h2 id="game-status">Partida en juego</h2>
           <p id="game-difficulty">Dificultad: fácil</p>
         </div>
-        <div class="game-actions">
-          <select id="assignment-select" name="assignment">
-            <option value="">Partida libre</option>
-          </select>
-          <select id="difficulty" name="difficulty">
-            <option value="easy">Fácil</option>
-            <option value="medium">Medio</option>
-            <option value="hard">Difícil</option>
-          </select>
-          <button id="start-game-btn">Iniciar juego</button>
-          <button id="new-game" class="secondary-button hidden">Siguiente palabra</button>
-          <button id="back-to-home-btn" class="secondary-button">Volver</button>
+        <div class="game-actions config-toolbar">
+          <label class="game-control" for="assignment-select">
+            <span>Partida</span>
+            <select id="assignment-select" name="assignment">
+              <option value="">Partida libre</option>
+            </select>
+          </label>
+          <label class="game-control" for="difficulty">
+            <span>Nivel</span>
+            <select id="difficulty" name="difficulty">
+              <option value="easy">Fácil</option>
+              <option value="medium">Medio</option>
+              <option value="hard">Difícil</option>
+            </select>
+          </label>
+          <div class="game-command-row">
+            <button id="start-game-btn">Iniciar juego</button>
+            <button id="new-game" class="secondary-button hidden">Siguiente palabra</button>
+            <button id="back-to-home-btn" class="secondary-button">Volver</button>
+          </div>
         </div>
       </div>
 
@@ -133,15 +141,17 @@
       </div>
 
       <form id="guess-form" class="guess-panel" onsubmit="return false;">
-        <label for="letter-input">Letra o palabra:</label>
-        <input 
-          type="text"
-          id="letter-input" 
-          maxlength="60" 
-          pattern="^[a-zñA-ZÑáéíóúÁÉÍÓÚüÜ]+$"
-          title="Ingresa una letra, la palabra completa o las letras que faltan."
-          autocomplete="off" 
-        />
+        <label class="guess-control" for="letter-input">
+          <span>Letra o palabra</span>
+          <input 
+            type="text"
+            id="letter-input" 
+            maxlength="60" 
+            pattern="^[a-zñA-ZÑáéíóúÁÉÍÓÚüÜ]+$"
+            title="Ingresa una letra, la palabra completa o las letras que faltan."
+            autocomplete="off" 
+          />
+        </label>
         <button type="button" id="guess-btn">Intentar</button>
         <div class="message" id="game-message" aria-live="polite"></div>
       </form>
@@ -300,15 +310,17 @@
           <div class="letters-row" id="challenge-letters-row" role="group" aria-label="Teclado de letras de palabra del día"></div>
           <div class="hint" id="challenge-hint-area">La pista aparecerá después de tres fallos.</div>
           <form id="challenge-solve-form" class="guess-panel" novalidate>
-            <label for="challenge-solve-input">Letra o palabra:</label>
-            <input
-              type="text"
-              id="challenge-solve-input"
-              maxlength="60"
-              pattern="^[a-zñA-ZÑáéíóúÁÉÍÓÚüÜ]+$"
-              title="Ingresa una letra, la palabra completa o las letras que faltan."
-              autocomplete="off"
-            />
+            <label class="guess-control" for="challenge-solve-input">
+              <span>Letra o palabra</span>
+              <input
+                type="text"
+                id="challenge-solve-input"
+                maxlength="60"
+                pattern="^[a-zñA-ZÑáéíóúÁÉÍÓÚüÜ]+$"
+                title="Ingresa una letra, la palabra completa o las letras que faltan."
+                autocomplete="off"
+              />
+            </label>
             <button type="submit" id="challenge-solve-btn">Intentar</button>
           </form>
           <div class="message" id="challenge-message" aria-live="polite"></div>

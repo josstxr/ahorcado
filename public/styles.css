@@ -589,3 +589,114 @@ button{border:0;border-radius:16px;padding:14px 19px;color:#fff;font-weight:720;
 #student-select{min-height:132px;padding:8px}#student-select option{padding:9px 10px;border-radius:10px;margin:2px 0}#student-select option:checked{background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff}
 #student-help{display:block;margin-top:7px;color:var(--muted);font-weight:500}.game-actions #assignment-select{min-width:240px;max-width:360px}.game-actions #start-game-btn{box-shadow:0 10px 25px rgba(91,92,240,.28)}
 @media(max-width:680px){.letters-row{grid-template-columns:repeat(7,1fr);gap:6px}.letters-row button{min-width:0;padding:10px 2px}.filter-grid,.config-grid{grid-template-columns:1fr}.hangman-drawing{height:180px}.keyboard-label small{display:none}}
+
+/* Game setup and answer controls */
+.game-actions.config-toolbar {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.4fr) minmax(150px, .7fr) auto;
+  gap: 12px;
+  align-items: end;
+  width: 100%;
+  margin-top: 18px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--field);
+}
+
+.game-control,
+.guess-control {
+  display: block;
+  min-width: 0;
+  margin: 0;
+  color: var(--muted);
+  font-size: .82rem;
+  font-weight: 800;
+}
+
+.game-control span,
+.guess-control span {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.game-control select,
+.guess-control input {
+  min-height: 50px;
+  margin: 0;
+}
+
+.game-command-row {
+  display: flex;
+  gap: 10px;
+  align-items: end;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.game-command-row button {
+  min-height: 50px;
+}
+
+.game-actions.config-toolbar #assignment-select {
+  min-width: 0;
+  max-width: none;
+}
+
+.guess-panel {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin-top: 26px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--field);
+}
+
+.guess-panel > button {
+  min-height: 50px;
+  align-self: end;
+  white-space: nowrap;
+}
+
+.guess-panel .message {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+[data-theme="dark"] .game-actions.config-toolbar,
+[data-theme="dark"] .guess-panel {
+  background: rgba(255,255,255,.065);
+  border-color: rgba(189,205,255,.2);
+}
+
+@media(max-width:780px) {
+  .game-actions.config-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .game-command-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: stretch;
+  }
+
+  .game-command-row button {
+    width: 100%;
+  }
+
+  .guess-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .guess-panel > button {
+    width: 100%;
+  }
+}
+
+@media(max-width:480px) {
+  .game-command-row {
+    grid-template-columns: 1fr;
+  }
+}
