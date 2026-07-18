@@ -1,6 +1,6 @@
 import { state, setState } from './components/state.mjs';
 import { setMessage, showPanel } from './components/ui.mjs';
-import { loadLeaderboard as fetchLeaderboard, registerUser, loginUser } from './components/api.mjs';
+import { deleteMyAccount, loadLeaderboard as fetchLeaderboard, registerUser, loginUser } from './components/api.mjs';
 import { saveSession, loadSession, clearSession as clearStoredSession } from './components/session.mjs';
 import { initTraditionalGame } from './components/game.mjs';
 import { initDailyChallenge } from './components/challenge.mjs';
@@ -26,6 +26,7 @@ const elements = {
   backToLoginBtn: document.getElementById('back-to-login'),
   introPanel: document.getElementById('intro-panel'),
   homePanel: document.getElementById('home-panel'),
+  settingsPanel: document.getElementById('settings-panel'),
   gamePanel: document.getElementById('game-panel'),
   teacherPanel: document.getElementById('teacher-panel'),
   speedChallengePanel: document.getElementById('speed-challenge-panel'),
@@ -33,8 +34,11 @@ const elements = {
   playGameBtn: document.getElementById('play-game-btn'),
   speedChallengeBtn: document.getElementById('speed-challenge-btn'),
   teacherBtn: document.getElementById('teacher-btn'),
+  settingsBtn: document.getElementById('settings-btn'),
   logoutBtn: document.getElementById('logout-btn'),
+  settingsLogoutBtn: document.getElementById('settings-logout-btn'),
   backToHomeBtn: document.getElementById('back-to-home-btn'),
+  backToHomeFromSettingsBtn: document.getElementById('back-to-home-from-settings-btn'),
   backToHomeFromTeacherBtn: document.getElementById('back-to-home-from-teacher-btn'),
   backToHomeFromChallengeBtn: document.getElementById('back-to-home-from-challenge-btn'),
   letterInput: document.getElementById('letter-input'),
@@ -110,6 +114,9 @@ const elements = {
   challengeLeaderboardBtn: document.getElementById('challenge-leaderboard-btn'),
   challengeBackBtn: document.getElementById('challenge-back-btn'),
   challengeRankingList: document.getElementById('challenge-ranking-list'),
+  deleteAccountForm: document.getElementById('delete-account-form'),
+  deleteAccountPassword: document.getElementById('delete-account-password'),
+  deleteAccountMessage: document.getElementById('delete-account-message'),
 };
 
 async function loadLeaderboard() {
@@ -133,6 +140,7 @@ async function setUserSession(data) {
 
   showPanel(elements.introPanel, false);
   showPanel(elements.homePanel, true);
+  showPanel(elements.settingsPanel, false);
   showPanel(elements.gamePanel, false);
   showPanel(elements.teacherPanel, false);
   showPanel(elements.speedChallengePanel, false);
@@ -159,6 +167,7 @@ function logout() {
   clearStoredSession();
   setState({ token: null, user: null });
   showPanel(elements.homePanel, false);
+  showPanel(elements.settingsPanel, false);
   showPanel(elements.gamePanel, false);
   showPanel(elements.teacherPanel, false);
   showPanel(elements.speedChallengePanel, false);
@@ -226,6 +235,10 @@ if (elements.registerForm) {
 
     const { response, data } = await registerUser(payload);
     if (response.ok && data.token) {
+      if (data.user?.role !== payload.role) {
+        setMessage(elements.registerMessage, 'El rol guardado no coincide con el rol seleccionado. Inicia sesión de nuevo o contacta al administrador.');
+        return;
+      }
       saveSession(data.token, data.user);
       window.location.href = '/';
     } else {
@@ -264,12 +277,64 @@ if (elements.teacherBtn) {
   });
 }
 
+if (elements.settingsBtn) {
+  elements.settingsBtn.addEventListener('click', () => {
+    showPanel(elements.homePanel, false);
+    showPanel(elements.settingsPanel, true);
+  });
+}
+
 if (elements.logoutBtn) {
   elements.logoutBtn.addEventListener('click', logout);
+}
+if (elements.settingsLogoutBtn) {
+  elements.settingsLogoutBtn.addEventListener('click', logout);
+}
+
+if (elements.deleteAccountForm) {
+  elements.deleteAccountForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!elements.deleteAccountForm.checkValidity()) {
+      elements.deleteAccountForm.reportValidity();
+      return;
+    }
+
+    const confirmed = window.confirm('¿Eliminar tu cuenta permanentemente? Esta acción no se puede deshacer.');
+    if (!confirmed) return;
+
+    const button = elements.deleteAccountForm.querySelector('button[type="submit"]');
+    const originalText = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Eliminando...';
+    setMessage(elements.deleteAccountMessage, 'Eliminando cuenta...');
+    try {
+      const { response, data } = await deleteMyAccount(elements.deleteAccountPassword.value);
+      if (!response.ok) {
+        return setMessage(elements.deleteAccountMessage, data.error || 'No se pudo eliminar la cuenta.');
+      }
+      clearStoredSession();
+      setState({ token: null, user: null });
+      elements.deleteAccountPassword.value = '';
+      showPanel(elements.settingsPanel, false);
+      showPanel(elements.homePanel, false);
+      showPanel(elements.gamePanel, false);
+      showPanel(elements.teacherPanel, false);
+      showPanel(elements.speedChallengePanel, false);
+      showPanel(elements.introPanel, true);
+      setMessage(elements.authMessage, data.message || 'Cuenta eliminada permanentemente.');
+      await loadLeaderboard();
+    } catch {
+      setMessage(elements.deleteAccountMessage, 'No se pudo conectar con el servidor.');
+    } finally {
+      button.disabled = false;
+      button.textContent = originalText;
+    }
+  });
 }
 
 const backToHomeAction = () => {
   showPanel(elements.homePanel, true);
+  showPanel(elements.settingsPanel, false);
   showPanel(elements.gamePanel, false);
   showPanel(elements.teacherPanel, false);
   showPanel(elements.speedChallengePanel, false);
@@ -277,6 +342,7 @@ const backToHomeAction = () => {
 };
 
 if (elements.backToHomeBtn) elements.backToHomeBtn.addEventListener('click', backToHomeAction);
+if (elements.backToHomeFromSettingsBtn) elements.backToHomeFromSettingsBtn.addEventListener('click', backToHomeAction);
 if (elements.backToHomeFromTeacherBtn) elements.backToHomeFromTeacherBtn.addEventListener('click', backToHomeAction);
 if (elements.backToHomeFromChallengeBtn) elements.backToHomeFromChallengeBtn.addEventListener('click', backToHomeAction);
 if (elements.challengeBackBtn) elements.challengeBackBtn.addEventListener('click', backToHomeAction);

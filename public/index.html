@@ -81,8 +81,40 @@
           <img class="action-icon-img" src="assets/icons/teacher-panel.png" alt="" aria-hidden="true" />
           <div class="action-label">Panel de Profesor</div>
         </button>
+        <button id="settings-btn" class="action-btn">
+          <span class="settings-icon" aria-hidden="true"></span>
+          <div class="action-label">Configuración</div>
+        </button>
       </div>
       <button id="logout-btn" class="secondary-button">Cerrar sesión</button>
+    </section>
+
+    <section class="panel hidden" id="settings-panel">
+      <span class="eyebrow">Cuenta</span>
+      <h2>Configuración</h2>
+      <p>Administra tu sesión y tu cuenta.</p>
+
+      <div class="config-card">
+        <h3>Sesión</h3>
+        <div class="auth-actions">
+          <button type="button" id="settings-logout-btn">Cerrar sesión</button>
+          <button type="button" id="back-to-home-from-settings-btn" class="secondary-button">Volver</button>
+        </div>
+      </div>
+
+      <form id="delete-account-form" class="auth-form config-card" novalidate>
+        <h3>Eliminar cuenta permanentemente</h3>
+        <p>Esta acción borra tu perfil, partidas, respuestas y asignaciones. No se puede deshacer.</p>
+        <label for="delete-account-password">Contraseña:</label>
+        <input
+          type="password"
+          id="delete-account-password"
+          autocomplete="current-password"
+          required
+        />
+        <button type="submit" class="secondary-button danger-button">Eliminar cuenta</button>
+        <div class="message" id="delete-account-message" aria-live="polite"></div>
+      </form>
     </section>
 
     <section class="panel hidden" id="game-panel">

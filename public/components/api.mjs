@@ -41,6 +41,13 @@ export async function loginUser(usernameOrEmail, password) {
   });
 }
 
+export async function deleteMyAccount(password) {
+  return apiFetch('/api/auth/me', {
+    method: 'DELETE',
+    body: JSON.stringify({ password }),
+  });
+}
+
 export async function loadLeaderboard() {
   return apiFetch('/api/leaderboard');
 }
