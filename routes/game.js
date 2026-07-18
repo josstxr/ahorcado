@@ -4,6 +4,7 @@ const { authToken } = require('../middleware/auth');
 
 const router = express.Router();
 const MAX_WRONG = 6;
+const HINT_EVERY_WRONG = 2;
 
 function normalizeLetter(value) {
   return String(value).toLowerCase().replace(/ñ/g, '__enie__').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/__enie__/g, 'ñ');
@@ -39,6 +40,15 @@ function chooseHint(word, guesses) {
   const missing = [...new Set([...word].map(normalizeLetter))].filter((ch) => /^[a-zñ]$/.test(ch) && !guessed.has(ch));
   if (!missing.length) return null;
   return missing[Math.floor(Math.random() * missing.length)];
+}
+
+function applyTimedHint(word, guessed, wrongAttempts) {
+  if (wrongAttempts > 0 && wrongAttempts % HINT_EVERY_WRONG === 0) {
+    const hint = chooseHint(word, Array.from(guessed));
+    if (hint) guessed.add(hint);
+    return hint;
+  }
+  return null;
 }
 
 function computeScore(status, difficulty, wrongAttempts) {
@@ -191,11 +201,9 @@ router.post('/guess', authToken, async (req, res) => {
     } else {
       wrong.add(letter);
       wrongAttempts += 1;
-      
-      // La pista se calcula una única vez al tercer fallo y queda grabada permanentemente
-      if (wrongAttempts >= 3 && !revealedHint) {
-        revealedHint = chooseHint(word, Array.from(guessed));
-      }
+
+      const hint = applyTimedHint(word, guessed, wrongAttempts);
+      if (hint) revealedHint = hint;
     }
 
     const masked = maskWord(word, Array.from(guessed));
@@ -289,9 +297,8 @@ router.post('/solve', authToken, async (req, res) => {
       status = 'won';
     } else {
       wrongAttempts += 1;
-      if (wrongAttempts >= 3 && !revealedHint) {
-        revealedHint = chooseHint(word, Array.from(guessed));
-      }
+      const hint = applyTimedHint(word, guessed, wrongAttempts);
+      if (hint) revealedHint = hint;
       if (wrongAttempts >= MAX_WRONG) {
         status = 'lost';
       }

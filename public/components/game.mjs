@@ -54,23 +54,7 @@ export function initTraditionalGame({ elements, onGameReady }) {
   const sounds = createSoundEngine();
   let previousState = null;
   let requestPending = false;
-  let autoAdvanceTimer = null;
-
-  function clearAutoAdvance() {
-    if (autoAdvanceTimer) {
-      window.clearTimeout(autoAdvanceTimer);
-      autoAdvanceTimer = null;
-    }
-  }
-
-  function queueNextWord(delay = 1400) {
-    clearAutoAdvance();
-    if (requestPending) return;
-    autoAdvanceTimer = window.setTimeout(() => {
-      autoAdvanceTimer = null;
-      startNewGame();
-    }, delay);
-  }
+  const pendingLetters = new Set();
 
   function renderHangman(wrongAttempts = 0) {
     hangmanParts?.forEach((part) => {
@@ -86,12 +70,14 @@ export function initTraditionalGame({ elements, onGameReady }) {
     const wrongSet = new Set(wrong || []);
 
     alphabet.forEach((letter) => {
+      const isPending = pendingLetters.has(letter);
       const button = document.createElement('button');
       button.type = 'button';
       button.textContent = letter.toUpperCase();
       button.dataset.letter = letter;
       button.setAttribute('aria-label', `Letra ${letter}`);
-      button.disabled = status !== 'playing' || correctSet.has(letter) || wrongSet.has(letter);
+      button.disabled = status !== 'playing' || isPending || correctSet.has(letter) || wrongSet.has(letter);
+      if (isPending) button.classList.add('used', 'pending');
       if (correctSet.has(letter)) button.classList.add('used', 'correct');
       if (wrongSet.has(letter)) button.classList.add('used', 'wrong');
       button.addEventListener('pointerdown', (event) => {
@@ -111,17 +97,19 @@ export function initTraditionalGame({ elements, onGameReady }) {
   }
 
   function isAlreadyTried(letter) {
-    return previousState?.guessedLetters?.includes(letter) || previousState?.wrongLetters?.includes(letter);
+    return pendingLetters.has(letter) || previousState?.guessedLetters?.includes(letter) || previousState?.wrongLetters?.includes(letter);
   }
 
   function markLetterPending(letter) {
     const button = getLetterButton(letter);
     if (!button || button.disabled) return;
+    pendingLetters.add(letter);
     button.classList.add('used', 'pending');
     button.disabled = true;
   }
 
   function clearLetterPending(letter) {
+    pendingLetters.delete(letter);
     const button = getLetterButton(letter);
     if (!button?.classList.contains('pending')) return;
     button.classList.remove('used', 'pending');
@@ -132,11 +120,11 @@ export function initTraditionalGame({ elements, onGameReady }) {
     if (data.status === 'won') {
       sounds.win();
       celebrate();
-      setMessage(gameMessage, `🎉 ¡Excelente! Adivinaste “${data.word}”. Has completado la partida.`);
+      setMessage(gameMessage, `🎉 ¡Excelente! Adivinaste “${data.word}”. Pulsa “Siguiente palabra” para continuar.`);
       gameMessage?.classList.add('result-message', 'win');
     } else if (data.status === 'lost') {
       sounds.lose();
-      setMessage(gameMessage, `La palabra era “${data.word}”. ¡No te rindas, inténtalo de nuevo!`);
+      setMessage(gameMessage, `La palabra era “${data.word}”. Pulsa “Siguiente palabra” para intentarlo de nuevo.`);
       gameMessage?.classList.add('result-message', 'lose');
     }
   }
@@ -147,6 +135,11 @@ export function initTraditionalGame({ elements, onGameReady }) {
     const newCorrectGuess = previousState && data.guessedLetters?.length > previousState.guessedLetters?.length;
     const newWrongGuess = previousState && data.wrongAttempts > previousState.wrongAttempts;
     const solvedWord = previousState?.status === 'playing' && data.status === 'won';
+    [...pendingLetters].forEach((letter) => {
+      if (data.guessedLetters?.includes(letter) || data.wrongLetters?.includes(letter)) {
+        pendingLetters.delete(letter);
+      }
+    });
 
     setState({ gameId: data.id });
     maskedWord.textContent = data.masked;
@@ -154,7 +147,7 @@ export function initTraditionalGame({ elements, onGameReady }) {
     wrongAttemptsEl && (wrongAttemptsEl.textContent = data.wrongAttempts);
     difficultyEl && (difficultyEl.textContent = `Dificultad: ${data.difficulty === 'easy' ? 'fácil' : data.difficulty === 'medium' ? 'media' : 'difícil'}`);
     gameStatusEl && (gameStatusEl.textContent = data.status === 'playing' ? 'Partida en juego' : data.status === 'won' ? '¡Palabra descubierta!' : 'Fin de la partida');
-    hintArea && (hintArea.textContent = data.hint ? `Pista: la letra “${data.hint.toUpperCase()}” aparece en la palabra.` : 'La pista aparecerá después de tres fallos.');
+    hintArea && (hintArea.textContent = data.hint ? `Pista: se reveló la letra “${data.hint.toUpperCase()}”.` : 'Recibes una pista cada dos fallos.');
     renderHangman(data.wrongAttempts);
     renderKeypad(data.guessedLetters, data.wrongLetters, data.status);
     startGameBtn?.classList.add('hidden');
@@ -164,7 +157,6 @@ export function initTraditionalGame({ elements, onGameReady }) {
     if (data.status !== 'playing') {
       if (wasPlaying || !previousState) {
         announceResult(data);
-        queueNextWord();
       }
     } else if (solvedWord) {
       sounds.win();
@@ -184,13 +176,12 @@ export function initTraditionalGame({ elements, onGameReady }) {
   }
 
   async function handleGuess(letter) {
-    if (!state.gameId || requestPending) return;
+    if (!state.gameId) return;
     if (previousState && previousState.status !== 'playing') return;
     const normalized = String(letter).toLowerCase();
     if (!alphabet.includes(normalized)) return;
     if (isAlreadyTried(normalized)) return;
     markLetterPending(normalized);
-    requestPending = true;
     try {
       const { response, data } = await submitGuess(normalized, state.gameId);
       if (response.ok) setGameState(data);
@@ -202,7 +193,7 @@ export function initTraditionalGame({ elements, onGameReady }) {
       clearLetterPending(normalized);
       setMessage(gameMessage, 'No se pudo conectar con el servidor.');
     } finally {
-      requestPending = false;
+      pendingLetters.delete(normalized);
     }
   }
 
@@ -224,7 +215,7 @@ export function initTraditionalGame({ elements, onGameReady }) {
   }
 
   async function startNewGame() {
-    clearAutoAdvance();
+    pendingLetters.clear();
     if (!state.user) {
       const stored = localStorage.getItem('ahorcado_user');
       if (stored) setState({ user: JSON.parse(stored) });
@@ -240,7 +231,9 @@ export function initTraditionalGame({ elements, onGameReady }) {
       return;
     }
     previousState = null;
+    setState({ gameId: null });
     renderHangman(0);
+    renderKeypad([], [], 'waiting');
     const assignmentId = assignmentSelect?.value ? Number(assignmentSelect.value) : null;
     const { response, data } = await createGame(
       queuedWord?.difficulty || difficultySelect?.value || state.difficulty,
@@ -284,10 +277,11 @@ export function initTraditionalGame({ elements, onGameReady }) {
     attemptsEl && (attemptsEl.textContent = '0');
     wrongAttemptsEl && (wrongAttemptsEl.textContent = '0');
     renderHangman(0);
+    pendingLetters.clear();
     renderKeypad([], [], 'waiting');
     startGameBtn?.classList.remove('hidden');
     newGameBtn?.classList.add('hidden');
-    setMessage(gameMessage, 'Elige partida libre o una actividad asignada.');
+    setMessage(gameMessage, 'Elige partida libre o una actividad asignada. Recibes una pista cada dos fallos.');
     if (!assignmentSelect) return;
     assignmentSelect.innerHTML = '<option value="">Partida libre · palabras aleatorias</option>';
     try {

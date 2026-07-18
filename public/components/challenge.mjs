@@ -27,6 +27,7 @@ export function initDailyChallenge({ elements }) {
   let dailyGameId = null;
   let requestPending = false;
   let currentGame = null;
+  const pendingLetters = new Set();
 
   function renderHangman(wrongAttempts = 0) {
     challengeHangmanParts?.forEach((part) => {
@@ -44,11 +45,13 @@ export function initDailyChallenge({ elements }) {
     const wrongSet = new Set(wrong || []);
 
     alphabet.forEach((letter) => {
+      const isPending = pendingLetters.has(letter);
       const button = document.createElement('button');
       button.type = 'button';
       button.textContent = letter.toUpperCase();
       button.dataset.letter = letter;
-      button.disabled = status !== 'playing' || correctSet.has(letter) || wrongSet.has(letter);
+      button.disabled = status !== 'playing' || isPending || correctSet.has(letter) || wrongSet.has(letter);
+      if (isPending) button.classList.add('used', 'pending');
       if (correctSet.has(letter)) button.classList.add('used', 'correct');
       if (wrongSet.has(letter)) button.classList.add('used', 'wrong');
       button.addEventListener('pointerdown', (event) => {
@@ -68,17 +71,19 @@ export function initDailyChallenge({ elements }) {
   }
 
   function isAlreadyTried(letter) {
-    return currentGame?.guessedLetters?.includes(letter) || currentGame?.wrongLetters?.includes(letter);
+    return pendingLetters.has(letter) || currentGame?.guessedLetters?.includes(letter) || currentGame?.wrongLetters?.includes(letter);
   }
 
   function markLetterPending(letter) {
     const button = getLetterButton(letter);
     if (!button || button.disabled) return;
+    pendingLetters.add(letter);
     button.classList.add('used', 'pending');
     button.disabled = true;
   }
 
   function clearLetterPending(letter) {
+    pendingLetters.delete(letter);
     const button = getLetterButton(letter);
     if (!button?.classList.contains('pending')) return;
     button.classList.remove('used', 'pending');
@@ -86,6 +91,11 @@ export function initDailyChallenge({ elements }) {
   }
 
   function renderGame(data) {
+    [...pendingLetters].forEach((letter) => {
+      if (data.guessedLetters?.includes(letter) || data.wrongLetters?.includes(letter)) {
+        pendingLetters.delete(letter);
+      }
+    });
     currentGame = data;
     dailyGameId = data.id;
     if (challengeMaskedWord) challengeMaskedWord.textContent = data.masked;
@@ -103,8 +113,8 @@ export function initDailyChallenge({ elements }) {
     }
     if (challengeHintArea) {
       challengeHintArea.textContent = data.hint
-        ? `Pista: la letra “${data.hint.toUpperCase()}” aparece en la palabra.`
-        : 'La pista aparecerá después de tres fallos.';
+        ? `Pista: se reveló la letra “${data.hint.toUpperCase()}”.`
+        : 'Recibes una pista cada dos fallos.';
     }
     renderHangman(data.wrongAttempts);
     renderKeypad(data.guessedLetters, data.wrongLetters, data.status);
@@ -119,11 +129,10 @@ export function initDailyChallenge({ elements }) {
   }
 
   async function handleGuess(letter) {
-    if (!dailyGameId || requestPending) return;
+    if (!dailyGameId) return;
     const normalized = String(letter || '').toLowerCase();
     if (!alphabet.includes(normalized) || isAlreadyTried(normalized)) return;
     markLetterPending(normalized);
-    requestPending = true;
     try {
       const { response, data } = await submitGuess(normalized, dailyGameId);
       if (response.ok) renderGame(data);
@@ -135,7 +144,7 @@ export function initDailyChallenge({ elements }) {
       clearLetterPending(normalized);
       setMessage(challengeMessage, 'No se pudo conectar con el servidor.');
     } finally {
-      requestPending = false;
+      pendingLetters.delete(normalized);
     }
   }
 
@@ -163,6 +172,7 @@ export function initDailyChallenge({ elements }) {
       if (challengeLeaderboard) challengeLeaderboard.classList.add('hidden');
       setMessage(challengeWaiting, 'Comprobando disponibilidad del servidor...');
       currentGame = null;
+      pendingLetters.clear();
 
       const { response, data } = await loadDailyChallenge();
       if (!response.ok || !data.wordId) {
