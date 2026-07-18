@@ -675,11 +675,21 @@ button{border:0;border-radius:16px;padding:14px 19px;color:#fff;font-weight:720;
   margin: 0;
 }
 
-.guess-panel .next-word-button {
+.guess-panel .end-game-actions {
   grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+  gap: 12px;
+  align-items: stretch;
+  margin-top: 2px;
+}
+
+.guess-panel .end-game-actions button {
   width: 100%;
   min-height: 54px;
-  margin-top: 2px;
+}
+
+.guess-panel .next-word-button {
   background: linear-gradient(135deg, var(--primary), var(--primary-2));
   color: #fff;
   box-shadow: 0 16px 36px rgba(91, 92, 240, .24);
@@ -716,6 +726,10 @@ button{border:0;border-radius:16px;padding:14px 19px;color:#fff;font-weight:720;
 
   .guess-panel > button {
     width: 100%;
+  }
+
+  .guess-panel .end-game-actions {
+    grid-template-columns: 1fr;
   }
 }
 
