@@ -74,6 +74,8 @@ const elements = {
   gameConfigMessage: document.getElementById('game-config-message'),
   studentSelect: document.getElementById('student-select'),
   startPreparedGameBtn: document.getElementById('start-prepared-game-btn'),
+  assignedGamesList: document.getElementById('assigned-games-list'),
+  assignedGamesMessage: document.getElementById('assigned-games-message'),
   teacherMessage: document.getElementById('teacher-message'),
   dailyWordForm: document.getElementById('daily-word-form'),
   dailyWordSelect: document.getElementById('daily-word-select'),

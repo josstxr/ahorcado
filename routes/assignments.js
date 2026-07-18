@@ -54,6 +54,33 @@ router.get('/mine', authToken, async (req, res) => {
   }
 });
 
+router.get('/teacher', authToken, requireTeacher, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT
+         ag.id,
+         ag.theme,
+         ag.difficulty,
+         ag.status,
+         ag.current_index,
+         ag.created_at,
+         cardinality(ag.word_ids) as word_count,
+         p.name as student_username,
+         p.first_name as student_first_name,
+         p.last_name as student_last_name
+       FROM assigned_games ag
+       JOIN players p ON ag.student_id = p.id
+       WHERE ag.teacher_id = $1
+       ORDER BY ag.created_at DESC, ag.id DESC`,
+      [req.user.id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error loading assignments for teacher:', err);
+    res.status(500).json({ error: 'Error al cargar las partidas temáticas.' });
+  }
+});
+
 router.post('/', authToken, requireTeacher, async (req, res) => {
   const { studentIds, wordIds, theme, difficulty } = req.body;
   const teacherId = req.user.id;
@@ -117,6 +144,29 @@ router.post('/', authToken, requireTeacher, async (req, res) => {
     res.status(500).json({ error: 'Error al asignar la partida.' });
   } finally {
     client.release();
+  }
+});
+
+router.delete('/:id', authToken, requireTeacher, async (req, res) => {
+  const assignmentId = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(assignmentId)) {
+    return res.status(400).json({ error: 'La partida no es válida.' });
+  }
+
+  try {
+    const result = await pool.query(
+      'DELETE FROM assigned_games WHERE id = $1 AND teacher_id = $2 RETURNING id',
+      [assignmentId, req.user.id]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({ error: 'No se encontró esa partida temática para tu profesor.' });
+    }
+
+    res.json({ message: 'Partida temática eliminada.' });
+  } catch (err) {
+    console.error('Error deleting assignment:', err);
+    res.status(500).json({ error: 'Error al eliminar la partida temática.' });
   }
 });
 

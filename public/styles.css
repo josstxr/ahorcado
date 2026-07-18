@@ -590,6 +590,12 @@ button{border:0;border-radius:16px;padding:14px 19px;color:#fff;font-weight:720;
 #student-help{display:block;margin-top:7px;color:var(--muted);font-weight:500}.game-actions #assignment-select{min-width:240px;max-width:360px}.game-actions #start-game-btn{box-shadow:0 10px 25px rgba(91,92,240,.28)}
 @media(max-width:680px){.letters-row{grid-template-columns:repeat(7,1fr);gap:6px}.letters-row button{min-width:0;padding:10px 2px}.filter-grid,.config-grid{grid-template-columns:1fr}.hangman-drawing{height:180px}.keyboard-label small{display:none}}
 
+.assignment-list{display:grid;gap:10px;margin-top:16px}
+.assignment-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:14px;border-radius:16px;background:var(--field);border:1px solid var(--line)}
+.assignment-card div{display:flex;flex-direction:column;gap:5px;min-width:0}.assignment-card strong{color:var(--text)}.assignment-card span,.assignment-card small{color:var(--muted)}.assignment-card span{font-size:.84rem;line-height:1.45}.assignment-card small{font-size:.74rem}
+.danger-button,button.danger-button{color:#e5484d;border-color:rgba(229,72,77,.35)}.danger-button:hover,button.danger-button:hover{background:rgba(229,72,77,.12);border-color:rgba(229,72,77,.55)}
+@media(max-width:680px){.assignment-card{grid-template-columns:1fr}.assignment-card button{width:100%}}
+
 /* Game setup and answer controls */
 .game-actions.config-toolbar {
   display: grid;

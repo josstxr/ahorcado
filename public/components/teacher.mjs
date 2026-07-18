@@ -2,6 +2,7 @@ import { setMessage } from './ui.mjs';
 import { apiFetch, loadWordsForTeacher, setDailyWord } from './api.mjs';
 
 const difficultyLabels = { easy: 'Fácil', medium: 'Media', hard: 'Difícil' };
+const statusLabels = { pending: 'Pendiente', playing: 'En progreso', completed: 'Completada' };
 
 export function initTeacherPanel({ elements, onWordsLoaded, onStartGame }) {
   const {
@@ -10,8 +11,10 @@ export function initTeacherPanel({ elements, onWordsLoaded, onStartGame }) {
     dailyWordForm, dailyWordSelect, dailyWordMessage, wordFilter, themeFilter,
     teacherWordBank, gameConfigForm, gameTheme, gameWordCount, gameSource,
     gameConfigDifficulty, gameConfigMessage, studentSelect, startPreparedGameBtn,
+    assignedGamesList, assignedGamesMessage,
   } = elements;
   let words = [];
+  let assignedGames = [];
   const selectedWordIds = new Set();
 
   async function loadStudents() {
@@ -89,6 +92,86 @@ export function initTeacherPanel({ elements, onWordsLoaded, onStartGame }) {
     });
   }
 
+  function formatStudentName(assignment) {
+    const fullName = `${assignment.student_first_name || ''} ${assignment.student_last_name || ''}`.trim();
+    return fullName || assignment.student_username || 'Alumno';
+  }
+
+  function renderAssignedGames() {
+    if (!assignedGamesList) return;
+    assignedGamesList.innerHTML = '';
+
+    if (!assignedGames.length) {
+      const empty = document.createElement('p');
+      empty.className = 'empty-state';
+      empty.textContent = 'Aún no has creado partidas temáticas para alumnos.';
+      assignedGamesList.appendChild(empty);
+      return;
+    }
+
+    assignedGames.forEach((assignment) => {
+      const card = document.createElement('article');
+      card.className = 'assignment-card';
+
+      const content = document.createElement('div');
+      const title = document.createElement('strong');
+      title.textContent = assignment.theme || 'General';
+
+      const meta = document.createElement('span');
+      const current = Number(assignment.current_index || 0);
+      const total = Number(assignment.word_count || 0);
+      meta.textContent = `${formatStudentName(assignment)} · ${current}/${total} palabras · ${difficultyLabels[assignment.difficulty] || assignment.difficulty} · ${statusLabels[assignment.status] || assignment.status}`;
+
+      const date = document.createElement('small');
+      date.textContent = assignment.created_at ? new Date(assignment.created_at).toLocaleString('es-MX') : '';
+
+      content.append(title, meta, date);
+
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.className = 'secondary-button danger-button';
+      deleteButton.textContent = 'Eliminar';
+      deleteButton.addEventListener('click', () => deleteAssignedGame(assignment.id, assignment.theme));
+
+      card.append(content, deleteButton);
+      assignedGamesList.appendChild(card);
+    });
+  }
+
+  async function loadAssignedGames() {
+    if (!assignedGamesList) return;
+    try {
+      const { response, data } = await apiFetch('/api/assignments/teacher');
+      if (!response.ok) {
+        assignedGames = [];
+        renderAssignedGames();
+        return setMessage(assignedGamesMessage, data.error || 'No se pudieron cargar las partidas.');
+      }
+      assignedGames = Array.isArray(data) ? data : [];
+      renderAssignedGames();
+    } catch {
+      assignedGames = [];
+      renderAssignedGames();
+      setMessage(assignedGamesMessage, 'No se pudo conectar con el servidor.');
+    }
+  }
+
+  async function deleteAssignedGame(assignmentId, theme) {
+    const ok = window.confirm(`¿Eliminar la partida temática "${theme || 'General'}"?`);
+    if (!ok) return;
+
+    setMessage(assignedGamesMessage, 'Eliminando partida temática...');
+    try {
+      const { response, data } = await apiFetch(`/api/assignments/${assignmentId}`, { method: 'DELETE' });
+      setMessage(assignedGamesMessage, data.message || data.error);
+      if (response.ok) {
+        await loadAssignedGames();
+      }
+    } catch {
+      setMessage(assignedGamesMessage, 'No se pudo conectar con el servidor.');
+    }
+  }
+
   async function loadDailyWordsOptions() {
     try {
       const { response, data } = await loadWordsForTeacher();
@@ -106,6 +189,7 @@ export function initTeacherPanel({ elements, onWordsLoaded, onStartGame }) {
       populateThemes();
       renderWordBank();
       await loadStudents();
+      await loadAssignedGames();
       if (typeof onWordsLoaded === 'function') onWordsLoaded(words);
     } catch {
       setMessage(teacherMessage, 'No se pudo conectar con el servidor.');
@@ -169,6 +253,7 @@ export function initTeacherPanel({ elements, onWordsLoaded, onStartGame }) {
   async function prepareThemedGame() {
     if (!gameConfigForm?.checkValidity()) return gameConfigForm?.reportValidity();
     const button = gameConfigForm.querySelector('button[type="submit"]');
+    const originalButtonText = button.textContent;
     button.disabled = true;
     button.textContent = gameSource.value === 'ai' ? 'Generando con IA…' : 'Preparando…';
     setMessage(gameConfigMessage, 'Estamos preparando la selección de palabras.');
@@ -200,6 +285,7 @@ export function initTeacherPanel({ elements, onWordsLoaded, onStartGame }) {
         localStorage.removeItem('themedGameQueue');
         startPreparedGameBtn?.classList.add('hidden');
         setMessage(gameConfigMessage, `✓ ${assignmentData.message} (${data.words.length} palabras: ${selected})`);
+        await loadAssignedGames();
       } else {
         localStorage.setItem('themedGameQueue', JSON.stringify({
           theme: data.theme,
@@ -215,7 +301,7 @@ export function initTeacherPanel({ elements, onWordsLoaded, onStartGame }) {
       setMessage(gameConfigMessage, 'No se pudo conectar con el servidor.');
     } finally {
       button.disabled = false;
-      button.textContent = 'Preparar partida temática';
+      button.textContent = originalButtonText;
     }
   }
 
@@ -232,5 +318,5 @@ export function initTeacherPanel({ elements, onWordsLoaded, onStartGame }) {
     if (typeof onStartGame === 'function') onStartGame();
   });
 
-  return { loadDailyWordsOptions, loadStudents };
+  return { loadDailyWordsOptions, loadStudents, loadAssignedGames };
 }
