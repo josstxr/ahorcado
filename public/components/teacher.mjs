@@ -6,6 +6,7 @@ const difficultyLabels = { easy: 'Fácil', medium: 'Media', hard: 'Difícil' };
 export function initTeacherPanel({ elements, onWordsLoaded, onStartGame }) {
   const {
     wordForm, wordText, wordDifficulty, wordTheme, wordAssignDaily, teacherMessage,
+    aiWordForm, aiWordTheme, aiWordCount, aiWordDifficulty, aiWordMessage,
     dailyWordForm, dailyWordSelect, dailyWordMessage, wordFilter, themeFilter,
     teacherWordBank, gameConfigForm, gameTheme, gameWordCount, gameSource,
     gameConfigDifficulty, gameConfigMessage, studentSelect, startPreparedGameBtn,
@@ -137,6 +138,34 @@ export function initTeacherPanel({ elements, onWordsLoaded, onStartGame }) {
     if (response.ok) dailyWordSelect.value = '';
   }
 
+  async function generateAiWordsForBank() {
+    if (!aiWordForm?.checkValidity()) return aiWordForm?.reportValidity();
+    const button = aiWordForm.querySelector('button[type="submit"]');
+    button.disabled = true;
+    button.textContent = 'Generando…';
+    setMessage(aiWordMessage, 'La IA está creando palabras para el banco.');
+    try {
+      const { response, data } = await apiFetch('/api/words/generate', {
+        method: 'POST',
+        body: JSON.stringify({
+          theme: aiWordTheme.value.trim(),
+          count: Number(aiWordCount.value),
+          difficulty: aiWordDifficulty.value,
+        }),
+      });
+      if (!response.ok) return setMessage(aiWordMessage, data.error || 'No fue posible generar palabras.');
+      const generated = data.words.map((item) => item.word).join(', ');
+      setMessage(aiWordMessage, `✓ ${data.message}: ${generated}`);
+      if (gameTheme) gameTheme.value = data.theme || aiWordTheme.value.trim();
+      await loadDailyWordsOptions();
+    } catch {
+      setMessage(aiWordMessage, 'No se pudo conectar con el servidor.');
+    } finally {
+      button.disabled = false;
+      button.textContent = 'Generar y guardar palabras';
+    }
+  }
+
   async function prepareThemedGame() {
     if (!gameConfigForm?.checkValidity()) return gameConfigForm?.reportValidity();
     const button = gameConfigForm.querySelector('button[type="submit"]');
@@ -191,6 +220,7 @@ export function initTeacherPanel({ elements, onWordsLoaded, onStartGame }) {
   }
 
   wordForm?.addEventListener('submit', (event) => { event.preventDefault(); submitWord(); });
+  aiWordForm?.addEventListener('submit', (event) => { event.preventDefault(); generateAiWordsForBank(); });
   dailyWordForm?.addEventListener('submit', (event) => { event.preventDefault(); submitDailyWord(); });
   gameConfigForm?.addEventListener('submit', (event) => { event.preventDefault(); prepareThemedGame(); });
   wordFilter?.addEventListener('input', renderWordBank);

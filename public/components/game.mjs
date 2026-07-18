@@ -94,7 +94,10 @@ export function initTraditionalGame({ elements, onGameReady }) {
       button.disabled = status !== 'playing' || correctSet.has(letter) || wrongSet.has(letter);
       if (correctSet.has(letter)) button.classList.add('used', 'correct');
       if (wrongSet.has(letter)) button.classList.add('used', 'wrong');
-      button.addEventListener('click', () => handleGuess(letter));
+      button.addEventListener('click', () => {
+        button.blur();
+        handleGuess(letter);
+      });
       lettersRow.appendChild(button);
     });
   }

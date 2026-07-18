@@ -184,6 +184,26 @@
       <div class="message" id="teacher-message" aria-live="polite"></div>
 
       <hr class="section-divider">
+      <form id="ai-word-form" class="auth-form config-card" novalidate>
+        <div class="section-heading"><div><span class="eyebrow">Generador IA</span><h3>Crear palabras por tema</h3></div></div>
+        <div class="config-grid">
+          <label for="ai-word-theme">Tema
+            <input id="ai-word-theme" maxlength="50" placeholder="Ej. Ciberseguridad" required>
+          </label>
+          <label for="ai-word-count">Cantidad
+            <select id="ai-word-count"><option>5</option><option selected>10</option><option>15</option><option>20</option><option>30</option></select>
+          </label>
+          <label for="ai-word-difficulty">Dificultad
+            <select id="ai-word-difficulty"><option value="easy">Fácil</option><option value="medium">Media</option><option value="hard">Difícil</option></select>
+          </label>
+        </div>
+        <div class="auth-actions">
+          <button type="submit" id="generate-ai-words-btn">Generar y guardar palabras</button>
+        </div>
+        <div class="message" id="ai-word-message" aria-live="polite"></div>
+      </form>
+
+      <hr class="section-divider">
       <div class="teacher-workspace">
         <div class="section-heading"><div><span class="eyebrow">Banco de contenido</span><h3>Temas y partidas</h3></div></div>
         <div class="filter-grid">
