@@ -173,13 +173,13 @@
 
       <form id="guess-form" class="guess-panel" onsubmit="return false;">
         <label class="guess-control" for="letter-input">
-          <span>Letra o palabra</span>
+          <span>Letra</span>
           <input 
             type="text"
             id="letter-input" 
-            maxlength="60" 
-            pattern="^[a-zñA-ZÑáéíóúÁÉÍÓÚüÜ]+$"
-            title="Ingresa una letra, la palabra completa o las letras que faltan."
+            maxlength="1" 
+            pattern="^[a-zñA-ZÑáéíóúÁÉÍÓÚüÜ]$"
+            title="Ingresa solo una letra."
             autocomplete="off" 
           />
         </label>
@@ -371,13 +371,13 @@
           <div class="hint" id="challenge-hint-area">Recibes una pista cada dos fallos.</div>
           <form id="challenge-solve-form" class="guess-panel" novalidate>
             <label class="guess-control" for="challenge-solve-input">
-              <span>Letra o palabra</span>
+              <span>Letra</span>
               <input
                 type="text"
                 id="challenge-solve-input"
-                maxlength="60"
-                pattern="^[a-zñA-ZÑáéíóúÁÉÍÓÚüÜ]+$"
-                title="Ingresa una letra, la palabra completa o las letras que faltan."
+                maxlength="1"
+                pattern="^[a-zñA-ZÑáéíóúÁÉÍÓÚüÜ]$"
+                title="Ingresa solo una letra."
                 autocomplete="off"
               />
             </label>

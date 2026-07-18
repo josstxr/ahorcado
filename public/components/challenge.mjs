@@ -1,6 +1,6 @@
 import { setState } from './state.mjs';
 import { setMessage } from './ui.mjs';
-import { createGame, loadDailyChallenge, submitGuess, submitWordGuess, loadGameExplanation } from './api.mjs';
+import { createGame, loadDailyChallenge, submitGuess, loadGameExplanation } from './api.mjs';
 
 const alphabet = 'abcdefghijklmnñopqrstuvwxyz'.split('');
 
@@ -25,7 +25,6 @@ export function initDailyChallenge({ elements }) {
   } = elements;
 
   let dailyGameId = null;
-  let requestPending = false;
   let currentGame = null;
   const pendingLetters = new Set();
   let explainedGameId = null;
@@ -172,22 +171,6 @@ export function initDailyChallenge({ elements }) {
     }
   }
 
-  async function handleSolve(guess) {
-    if (!dailyGameId || requestPending) return;
-    const normalized = String(guess || '').trim().toLowerCase();
-    if (normalized.length < 2) return;
-    requestPending = true;
-    try {
-      const { response, data } = await submitWordGuess(normalized, dailyGameId);
-      if (response.ok) renderGame(data);
-      else setMessage(challengeMessage, data.error || 'No se pudo resolver la palabra.');
-    } catch {
-      setMessage(challengeMessage, 'No se pudo conectar con el servidor.');
-    } finally {
-      requestPending = false;
-    }
-  }
-
   async function loadChallenge() {
     try {
       if (challengeWaiting) challengeWaiting.classList.remove('hidden');
@@ -223,14 +206,14 @@ export function initDailyChallenge({ elements }) {
   }
 
   challengeSolveInput?.addEventListener('input', () => {
-    challengeSolveInput.value = challengeSolveInput.value.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚüÜ]/g, '');
+    challengeSolveInput.value = challengeSolveInput.value.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚüÜ]/g, '').slice(0, 1);
   });
 
   challengeSolveForm?.addEventListener('submit', (event) => {
     event.preventDefault();
     const guess = challengeSolveInput?.value.trim().toLowerCase();
     if (guess?.length === 1) handleGuess(guess);
-    else if (guess?.length > 1) handleSolve(guess);
+    else setMessage(challengeMessage, 'Ingresa una sola letra.');
     if (challengeSolveInput) challengeSolveInput.value = '';
   });
 

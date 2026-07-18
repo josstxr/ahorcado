@@ -66,13 +66,6 @@ export async function submitGuess(letter, gameId) {
   });
 }
 
-export async function submitWordGuess(guess, gameId) {
-  return apiFetch('/api/game/solve', {
-    method: 'POST',
-    body: JSON.stringify({ gameId, guess }),
-  });
-}
-
 export async function loadGameExplanation(gameId) {
   return apiFetch('/api/game/explain', {
     method: 'POST',

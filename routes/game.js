@@ -47,29 +47,9 @@ function normalizeLetter(value) {
   return String(value).toLowerCase().replace(/ñ/g, '__enie__').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/__enie__/g, 'ñ');
 }
 
-function normalizeWord(value) {
-  return String(value || '')
-    .trim()
-    .toLowerCase()
-    .replace(/ñ/g, '__enie__')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/__enie__/g, 'ñ')
-    .replace(/[^a-zñ]/g, '');
-}
-
 function maskWord(word, guesses) {
   const guessed = new Set(guesses || []);
   return [...word].map((ch) => (guessed.has(normalizeLetter(ch)) ? ch : '_')).join(' ');
-}
-
-function missingWordPart(word, guesses) {
-  const guessed = new Set(guesses || []);
-  return [...word].map(normalizeLetter).filter((ch) => /^[a-zñ]$/.test(ch) && !guessed.has(ch)).join('');
-}
-
-function revealWord(word, guessed) {
-  [...word].map(normalizeLetter).filter((ch) => /^[a-zñ]$/.test(ch)).forEach((ch) => guessed.add(ch));
 }
 
 function chooseHint(word, guesses) {
@@ -297,91 +277,8 @@ router.post('/guess', authToken, async (req, res) => {
   }
 });
 
-router.post('/solve', authToken, async (req, res) => {
-  const client = await pool.connect();
-
-  try {
-    const gameId = parseInt(req.body.gameId, 10);
-    const guess = normalizeWord(req.body.guess);
-
-    if (!gameId || guess.length < 2 || guess.length > 60) {
-      return res.status(400).json({ error: 'Ingresa la palabra completa o las letras que faltan.' });
-    }
-
-    await client.query('BEGIN');
-
-    const gameRes = await client.query('SELECT * FROM games WHERE id = $1 FOR UPDATE', [gameId]);
-    if (!gameRes.rows.length) {
-      await client.query('ROLLBACK');
-      return res.status(404).json({ error: 'Partida no encontrada' });
-    }
-
-    const game = gameRes.rows[0];
-    if (Number(game.player_id) !== Number(req.user.id)) {
-      await client.query('ROLLBACK');
-      return res.status(403).json({ error: 'No tienes permiso para interactuar con esta partida' });
-    }
-
-    if (game.status !== 'playing') {
-      await client.query('ROLLBACK');
-      return res.status(400).json({ error: 'La partida ya terminó' });
-    }
-
-    const wordRes = await client.query('SELECT word FROM words WHERE id = $1', [game.word_id]);
-    const word = wordRes.rows[0].word.toLowerCase();
-    const guessed = new Set(game.guessed);
-    const normalizedWord = normalizeWord(word);
-    const remaining = missingWordPart(word, game.guessed);
-    const isCorrect = guess === normalizedWord || guess === remaining;
-
-    let wrongAttempts = game.wrong_attempts;
-    const attempts = game.attempts + 1;
-    let status = game.status;
-    let revealedHint = game.revealed_hint;
-
-    if (isCorrect) {
-      revealWord(word, guessed);
-      status = 'won';
-    } else {
-      wrongAttempts += 1;
-      const hint = applyTimedHint(word, guessed, wrongAttempts);
-      if (hint) revealedHint = hint;
-      if (wrongAttempts >= MAX_WRONG) {
-        status = 'lost';
-      }
-    }
-
-    await client.query(
-      'UPDATE games SET guessed = $1, wrong_attempts = $2, attempts = $3, status = $4, revealed_hint = $5, finished_at = CASE WHEN $4::varchar != $6::varchar THEN now() ELSE finished_at END WHERE id = $7',
-      [Array.from(guessed), wrongAttempts, attempts, status, revealedHint, game.status, gameId]
-    );
-
-    if (status === 'won') {
-      const earned = computeScore(status, game.difficulty, wrongAttempts);
-      await client.query('UPDATE players SET score = score + $1 WHERE id = $2', [earned, game.player_id]);
-    }
-
-    if (status !== 'playing' && game.assigned_game_id) {
-      await client.query(
-        `UPDATE assigned_games
-         SET current_index=current_index+1,
-             status=CASE WHEN current_index+1 >= cardinality(word_ids) THEN 'completed' ELSE 'playing' END
-         WHERE id=$1 AND student_id=$2`,
-        [game.assigned_game_id, game.player_id]
-      );
-    }
-
-    await client.query('COMMIT');
-
-    const updatedGameRes = await client.query('SELECT * FROM games WHERE id = $1', [gameId]);
-    res.json(await getGameState(updatedGameRes.rows[0]));
-  } catch (err) {
-    await client.query('ROLLBACK');
-    console.error(err);
-    res.status(500).json({ error: 'Error al resolver la palabra' });
-  } finally {
-    client.release();
-  }
+router.post('/solve', authToken, (req, res) => {
+  res.status(410).json({ error: 'Resolver por palabra completa está deshabilitado. Ingresa solo letras individuales.' });
 });
 
 router.post('/explain', authToken, async (req, res) => {
