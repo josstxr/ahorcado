@@ -148,6 +148,7 @@ async function setUserSession(data) {
   if (elements.welcomeName) {
     elements.welcomeName.textContent = data.user.name;
   }
+  elements.settingsBtn?.classList.remove('hidden');
 
   if (elements.teacherBtn) {
     if (data.user.role === 'teacher') {
@@ -166,6 +167,7 @@ async function setUserSession(data) {
 function logout() {
   clearStoredSession();
   setState({ token: null, user: null });
+  elements.settingsBtn?.classList.add('hidden');
   showPanel(elements.homePanel, false);
   showPanel(elements.settingsPanel, false);
   showPanel(elements.gamePanel, false);
@@ -279,7 +281,11 @@ if (elements.teacherBtn) {
 
 if (elements.settingsBtn) {
   elements.settingsBtn.addEventListener('click', () => {
+    showPanel(elements.introPanel, false);
     showPanel(elements.homePanel, false);
+    showPanel(elements.gamePanel, false);
+    showPanel(elements.teacherPanel, false);
+    showPanel(elements.speedChallengePanel, false);
     showPanel(elements.settingsPanel, true);
   });
 }
@@ -314,6 +320,7 @@ if (elements.deleteAccountForm) {
       }
       clearStoredSession();
       setState({ token: null, user: null });
+      elements.settingsBtn?.classList.add('hidden');
       elements.deleteAccountPassword.value = '';
       showPanel(elements.settingsPanel, false);
       showPanel(elements.homePanel, false);

@@ -15,11 +15,16 @@
       <span class="brand-mark" aria-hidden="true">A</span>
       <span>Ahorcado <strong>UTVAM</strong></span>
     </a>
-    <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Cambiar tema" aria-pressed="false">
-      <span class="theme-icon sun" aria-hidden="true">☀︎</span>
-      <span class="theme-icon moon" aria-hidden="true">☾</span>
-      <span class="theme-thumb" aria-hidden="true"></span>
-    </button>
+    <div class="topbar-actions">
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Cambiar tema" aria-pressed="false">
+        <span class="theme-icon sun" aria-hidden="true">☀︎</span>
+        <span class="theme-icon moon" aria-hidden="true">☾</span>
+        <span class="theme-thumb" aria-hidden="true"></span>
+      </button>
+      <button class="settings-top-btn hidden" id="settings-btn" type="button" aria-label="Configuración">
+        <span class="settings-mini-icon" aria-hidden="true"></span>
+      </button>
+    </div>
   </header>
   <main class="app">
     
@@ -80,10 +85,6 @@
         <button id="teacher-btn" class="action-btn hidden">
           <img class="action-icon-img" src="assets/icons/teacher-panel.png" alt="" aria-hidden="true" />
           <div class="action-label">Panel de Profesor</div>
-        </button>
-        <button id="settings-btn" class="action-btn">
-          <span class="settings-icon" aria-hidden="true"></span>
-          <div class="action-label">Configuración</div>
         </button>
       </div>
       <button id="logout-btn" class="secondary-button">Cerrar sesión</button>

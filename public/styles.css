@@ -901,3 +901,153 @@ button{border:0;border-radius:16px;padding:14px 19px;color:#fff;font-weight:720;
     height: 64px;
   }
 }
+
+/* Topbar account controls */
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.settings-top-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  color: var(--text);
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: none;
+}
+
+.settings-mini-icon {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  border: 3px solid currentColor;
+  border-radius: 50%;
+}
+
+.settings-mini-icon:before,
+.settings-mini-icon:after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 24px;
+  border-radius: 99px;
+  background: currentColor;
+  transform: translate(-50%, -50%);
+}
+
+.settings-mini-icon:after {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+/* High contrast dark mode pass */
+[data-theme="dark"] {
+  --bg: #07080d;
+  --text: #f8fafc;
+  --muted: #d1d8e6;
+  --glass: rgba(15, 18, 27, .94);
+  --glass-strong: rgba(27, 32, 45, .98);
+  --line: rgba(226, 232, 240, .22);
+  --field: rgba(30, 36, 50, .88);
+  --shadow: 0 32px 90px rgba(0, 0, 0, .72);
+  --primary: #a9b4ff;
+  --primary-2: #7dd3fc;
+  --success: #5ee0a0;
+}
+
+[data-theme="dark"] body {
+  background: #07080d;
+  color: var(--text);
+}
+
+[data-theme="dark"] .panel,
+[data-theme="dark"] .topbar {
+  background: rgba(15, 18, 27, .96);
+  border-color: rgba(226, 232, 240, .22);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, .68);
+}
+
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] label,
+[data-theme="dark"] .brand,
+[data-theme="dark"] .action-label,
+[data-theme="dark"] .keyboard-label span {
+  color: var(--text);
+}
+
+[data-theme="dark"] p,
+[data-theme="dark"] small,
+[data-theme="dark"] .hint,
+[data-theme="dark"] .keyboard-label small,
+[data-theme="dark"] .assignment-card span,
+[data-theme="dark"] .assignment-card small,
+[data-theme="dark"] .word-chip span {
+  color: var(--muted);
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] .action-btn,
+[data-theme="dark"] .config-card,
+[data-theme="dark"] .game-actions.config-toolbar,
+[data-theme="dark"] .guess-panel,
+[data-theme="dark"] .hangman-stage,
+[data-theme="dark"] .word-chip,
+[data-theme="dark"] .assignment-card,
+[data-theme="dark"] .leaderboard li,
+[data-theme="dark"] .challenge-ranking li,
+[data-theme="dark"] .info-row > div,
+[data-theme="dark"] .hint,
+[data-theme="dark"] .settings-top-btn,
+[data-theme="dark"] .theme-toggle {
+  background: rgba(30, 36, 50, .92);
+  border-color: rgba(226, 232, 240, .22);
+  color: var(--text);
+}
+
+[data-theme="dark"] input:focus,
+[data-theme="dark"] select:focus {
+  background: rgba(37, 44, 60, .98);
+  border-color: var(--primary-2);
+  box-shadow: 0 0 0 4px rgba(125, 211, 252, .18);
+}
+
+[data-theme="dark"] .word-display {
+  background: rgba(24, 29, 42, .96);
+  border-color: rgba(169, 180, 255, .3);
+  color: #d7ddff;
+  text-shadow: none;
+}
+
+[data-theme="dark"] .letters-row button {
+  background: rgba(31, 38, 53, .95);
+  border-color: rgba(226, 232, 240, .22);
+  color: var(--text);
+}
+
+[data-theme="dark"] .letters-row button:not(.used):hover,
+[data-theme="dark"] .action-btn:hover {
+  background: rgba(51, 61, 84, .96);
+  border-color: rgba(169, 180, 255, .44);
+}
+
+[data-theme="dark"] button {
+  color: #071018;
+  background: linear-gradient(135deg, #cbd5ff, #7dd3fc);
+}
+
+[data-theme="dark"] .secondary-button,
+[data-theme="dark"] button.secondary-button {
+  color: var(--text);
+  background: rgba(30, 36, 50, .92);
+  border-color: rgba(226, 232, 240, .24);
+}
