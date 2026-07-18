@@ -1095,11 +1095,15 @@ button,
 
 .letters-row button {
   user-select: none;
-  transition: background .08s ease, border-color .08s ease, color .08s ease, opacity .08s ease, transform .06s ease;
+  transition: none !important;
+  transform: translateZ(0);
 }
 
+.letters-row button:hover,
+.letters-row button:not(.used):hover,
 .letters-row button:not(:disabled):active {
-  transform: scale(.96);
+  transform: none !important;
+  filter: none !important;
 }
 
 .letters-row button.pending {

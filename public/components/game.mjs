@@ -81,11 +81,15 @@ export function initTraditionalGame({ elements, onGameReady }) {
       if (isPending) button.classList.add('used', 'pending');
       if (correctSet.has(letter)) button.classList.add('used', 'correct');
       if (wrongSet.has(letter)) button.classList.add('used', 'wrong');
-      button.addEventListener('pointerdown', (event) => {
+      const activateLetter = (event) => {
         event.preventDefault();
+        if (button.disabled) return;
         button.blur();
         handleGuess(letter);
-      });
+      };
+      button.addEventListener('pointerdown', activateLetter);
+      button.addEventListener('touchstart', activateLetter, { passive: false });
+      button.addEventListener('mousedown', activateLetter);
       button.addEventListener('click', (event) => {
         if (event.detail === 0) handleGuess(letter);
       });
@@ -202,6 +206,7 @@ export function initTraditionalGame({ elements, onGameReady }) {
     if (!alphabet.includes(normalized)) return;
     if (isAlreadyTried(normalized)) return;
     markLetterPending(normalized);
+    setMessage(gameMessage, `Probando “${normalized.toUpperCase()}”...`);
     try {
       const { response, data } = await submitGuess(normalized, state.gameId);
       if (response.ok) setGameState(data);
