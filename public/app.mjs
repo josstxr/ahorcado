@@ -91,6 +91,8 @@ const elements = {
   challengeHangmanParts: document.querySelectorAll('.challenge-hangman-part'),
   challengeAttemptMeterFill: document.getElementById('challenge-attempt-meter-fill'),
   challengeHintArea: document.getElementById('challenge-hint-area'),
+  challengeSolveForm: document.getElementById('challenge-solve-form'),
+  challengeSolveInput: document.getElementById('challenge-solve-input'),
   challengeAnswerForm: document.getElementById('challenge-answer-form'),
   challengeLetterInput: document.getElementById('challenge-letter-input'),
   challengeMessage: document.getElementById('challenge-message'),

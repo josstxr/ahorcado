@@ -133,13 +133,13 @@
       </div>
 
       <form id="guess-form" class="guess-panel" onsubmit="return false;">
-        <label for="letter-input">Letra:</label>
+        <label for="letter-input">Letra o palabra:</label>
         <input 
           type="text"
           id="letter-input" 
-          maxlength="1" 
-          pattern="^[a-zñA-ZÑ]$"
-          title="Ingresa una única letra válida."
+          maxlength="60" 
+          pattern="^[a-zñA-ZÑáéíóúÁÉÍÓÚüÜ]+$"
+          title="Ingresa una letra, la palabra completa o las letras que faltan."
           autocomplete="off" 
         />
         <button type="button" id="guess-btn">Intentar</button>
@@ -299,6 +299,18 @@
           <div class="keyboard-label"><span>Teclado visual</span><small>Selecciona una letra</small></div>
           <div class="letters-row" id="challenge-letters-row" role="group" aria-label="Teclado de letras de palabra del día"></div>
           <div class="hint" id="challenge-hint-area">La pista aparecerá después de tres fallos.</div>
+          <form id="challenge-solve-form" class="guess-panel" novalidate>
+            <label for="challenge-solve-input">Letra o palabra:</label>
+            <input
+              type="text"
+              id="challenge-solve-input"
+              maxlength="60"
+              pattern="^[a-zñA-ZÑáéíóúÁÉÍÓÚüÜ]+$"
+              title="Ingresa una letra, la palabra completa o las letras que faltan."
+              autocomplete="off"
+            />
+            <button type="submit" id="challenge-solve-btn">Intentar</button>
+          </form>
           <div class="message" id="challenge-message" aria-live="polite"></div>
         </div>
       </div>

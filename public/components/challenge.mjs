@@ -1,6 +1,6 @@
 import { setState } from './state.mjs';
 import { setMessage } from './ui.mjs';
-import { createGame, loadDailyChallenge, submitGuess } from './api.mjs';
+import { createGame, loadDailyChallenge, submitGuess, submitWordGuess } from './api.mjs';
 
 const alphabet = 'abcdefghijklmnñopqrstuvwxyz'.split('');
 
@@ -19,6 +19,8 @@ export function initDailyChallenge({ elements }) {
     challengeHangmanParts,
     challengeAttemptMeterFill,
     challengeHintArea,
+    challengeSolveForm,
+    challengeSolveInput,
     challengeMessage,
   } = elements;
 
@@ -102,6 +104,22 @@ export function initDailyChallenge({ elements }) {
     }
   }
 
+  async function handleSolve(guess) {
+    if (!dailyGameId || requestPending) return;
+    const normalized = String(guess || '').trim().toLowerCase();
+    if (normalized.length < 2) return;
+    requestPending = true;
+    try {
+      const { response, data } = await submitWordGuess(normalized, dailyGameId);
+      if (response.ok) renderGame(data);
+      else setMessage(challengeMessage, data.error || 'No se pudo resolver la palabra.');
+    } catch {
+      setMessage(challengeMessage, 'No se pudo conectar con el servidor.');
+    } finally {
+      requestPending = false;
+    }
+  }
+
   async function loadChallenge() {
     try {
       if (challengeWaiting) challengeWaiting.classList.remove('hidden');
@@ -125,12 +143,25 @@ export function initDailyChallenge({ elements }) {
 
       if (challengeWaiting) challengeWaiting.classList.add('hidden');
       if (challengeGame) challengeGame.classList.remove('hidden');
+      if (challengeSolveInput) challengeSolveInput.value = '';
       renderGame(gameResponse.data);
     } catch (error) {
       console.error('Error loading daily hangman:', error);
       setMessage(challengeWaiting, 'Error cargando la palabra del día.');
     }
   }
+
+  challengeSolveInput?.addEventListener('input', () => {
+    challengeSolveInput.value = challengeSolveInput.value.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚüÜ]/g, '');
+  });
+
+  challengeSolveForm?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const guess = challengeSolveInput?.value.trim().toLowerCase();
+    if (guess?.length === 1) handleGuess(guess);
+    else if (guess?.length > 1) handleSolve(guess);
+    if (challengeSolveInput) challengeSolveInput.value = '';
+  });
 
   return { loadChallenge };
 }

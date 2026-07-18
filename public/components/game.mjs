@@ -1,6 +1,6 @@
 import { state, setState } from './state.mjs';
 import { setMessage } from './ui.mjs';
-import { createGame, submitGuess, loadMyAssignments } from './api.mjs';
+import { createGame, submitGuess, submitWordGuess, loadMyAssignments } from './api.mjs';
 
 const alphabet = 'abcdefghijklmnñopqrstuvwxyz'.split('');
 
@@ -120,6 +120,7 @@ export function initTraditionalGame({ elements, onGameReady }) {
     const wasPlaying = previousState?.status === 'playing';
     const newCorrectGuess = previousState && data.guessedLetters?.length > previousState.guessedLetters?.length;
     const newWrongGuess = previousState && data.wrongAttempts > previousState.wrongAttempts;
+    const solvedWord = previousState?.status === 'playing' && data.status === 'won';
 
     setState({ gameId: data.id });
     maskedWord.textContent = data.masked;
@@ -139,6 +140,9 @@ export function initTraditionalGame({ elements, onGameReady }) {
         announceResult(data);
         queueNextWord();
       }
+    } else if (solvedWord) {
+      sounds.win();
+      setMessage(gameMessage, '¡Correcto! Resolviste la palabra completa.');
     } else if (newCorrectGuess) {
       sounds.correct();
       setMessage(gameMessage, '¡Bien! Esa letra sí está en la palabra.');
@@ -163,6 +167,23 @@ export function initTraditionalGame({ elements, onGameReady }) {
       const { response, data } = await submitGuess(normalized, state.gameId);
       if (response.ok) setGameState(data);
       else setMessage(gameMessage, data.error || 'No se pudo procesar la jugada.');
+    } catch {
+      setMessage(gameMessage, 'No se pudo conectar con el servidor.');
+    } finally {
+      requestPending = false;
+    }
+  }
+
+  async function handleSolve(guess) {
+    if (!state.gameId || requestPending) return;
+    if (previousState && previousState.status !== 'playing') return;
+    const normalized = String(guess || '').trim().toLowerCase();
+    if (normalized.length < 2) return;
+    requestPending = true;
+    try {
+      const { response, data } = await submitWordGuess(normalized, state.gameId);
+      if (response.ok) setGameState(data);
+      else setMessage(gameMessage, data.error || 'No se pudo resolver la palabra.');
     } catch {
       setMessage(gameMessage, 'No se pudo conectar con el servidor.');
     } finally {
@@ -206,11 +227,12 @@ export function initTraditionalGame({ elements, onGameReady }) {
   }
 
   letterInput?.addEventListener('input', () => {
-    letterInput.value = letterInput.value.replace(/[^a-zA-ZñÑ]/g, '');
+    letterInput.value = letterInput.value.replace(/[^a-zA-ZñÑáéíóúÁÉÍÓÚüÜ]/g, '');
   });
   guessBtn?.addEventListener('click', () => {
-    const letter = letterInput?.value.trim().toLowerCase();
-    if (letter?.length === 1) handleGuess(letter);
+    const guess = letterInput?.value.trim().toLowerCase();
+    if (guess?.length === 1) handleGuess(guess);
+    else if (guess?.length > 1) handleSolve(guess);
     if (letterInput) letterInput.value = '';
   });
   newGameBtn?.addEventListener('click', startNewGame);
