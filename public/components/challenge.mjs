@@ -91,7 +91,6 @@ export function initDailyChallenge({ elements }) {
   async function handleGuess(letter) {
     if (!dailyGameId || requestPending) return;
     requestPending = true;
-    challengeLettersRow?.classList.add('is-loading');
     try {
       const { response, data } = await submitGuess(letter, dailyGameId);
       if (response.ok) renderGame(data);
@@ -100,7 +99,6 @@ export function initDailyChallenge({ elements }) {
       setMessage(challengeMessage, 'No se pudo conectar con el servidor.');
     } finally {
       requestPending = false;
-      challengeLettersRow?.classList.remove('is-loading');
     }
   }
 

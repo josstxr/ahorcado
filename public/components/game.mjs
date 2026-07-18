@@ -159,7 +159,6 @@ export function initTraditionalGame({ elements, onGameReady }) {
     const normalized = String(letter).toLowerCase();
     if (!alphabet.includes(normalized)) return;
     requestPending = true;
-    lettersRow?.classList.add('is-loading');
     try {
       const { response, data } = await submitGuess(normalized, state.gameId);
       if (response.ok) setGameState(data);
@@ -168,7 +167,6 @@ export function initTraditionalGame({ elements, onGameReady }) {
       setMessage(gameMessage, 'No se pudo conectar con el servidor.');
     } finally {
       requestPending = false;
-      lettersRow?.classList.remove('is-loading');
     }
   }
 
