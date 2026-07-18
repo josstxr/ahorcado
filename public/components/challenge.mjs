@@ -1,6 +1,7 @@
 import { setState } from './state.mjs';
 import { setMessage } from './ui.mjs';
 import { createGame, loadDailyChallenge, submitGuess, loadGameExplanation } from './api.mjs';
+import { celebrate, createSoundEngine } from './effects.mjs';
 
 const alphabet = 'abcdefghijklmnñopqrstuvwxyz'.split('');
 
@@ -24,6 +25,7 @@ export function initDailyChallenge({ elements }) {
     challengeMessage,
   } = elements;
 
+  const sounds = createSoundEngine();
   let dailyGameId = null;
   let currentGame = null;
   const pendingLetters = new Set();
@@ -94,6 +96,19 @@ export function initDailyChallenge({ elements }) {
     button.disabled = false;
   }
 
+  function announceResult(data) {
+    if (data.status === 'won') {
+      sounds.win();
+      celebrate();
+      setMessage(challengeMessage, `🎉 ¡Excelente! Adivinaste “${data.word}”.`);
+      challengeMessage?.classList.add('result-message', 'win');
+    } else if (data.status === 'lost') {
+      sounds.lose();
+      setMessage(challengeMessage, `La palabra era “${data.word}”. Inténtalo de nuevo mañana.`);
+      challengeMessage?.classList.add('result-message', 'lose');
+    }
+  }
+
   async function showLearningExplanation(data) {
     if (!data?.id || data.status === 'playing' || explainedGameId === data.id || !challengeHintArea) return;
     explainedGameId = data.id;
@@ -111,12 +126,14 @@ export function initDailyChallenge({ elements }) {
   }
 
   function renderGame(data) {
+    const wasPlaying = currentGame?.status === 'playing';
+    const newCorrectGuess = currentGame && data.guessedLetters?.length > currentGame.guessedLetters?.length;
+    const newWrongGuess = currentGame && data.wrongAttempts > currentGame.wrongAttempts;
     [...pendingLetters].forEach((letter) => {
       if (data.guessedLetters?.includes(letter) || data.wrongLetters?.includes(letter)) {
         pendingLetters.delete(letter);
       }
     });
-    currentGame = data;
     dailyGameId = data.id;
     if (challengeMaskedWord) challengeMaskedWord.textContent = data.masked;
     if (challengeAttemptsEl) challengeAttemptsEl.textContent = data.attempts;
@@ -139,15 +156,23 @@ export function initDailyChallenge({ elements }) {
     renderHangman(data.wrongAttempts);
     renderKeypad(data.guessedLetters, data.wrongLetters, data.status);
 
-    if (data.status === 'won') {
-      setMessage(challengeMessage, `¡Excelente! Adivinaste “${data.word}”.`);
+    challengeMessage?.classList.remove('result-message', 'win', 'lose');
+    if (data.status !== 'playing') {
+      if (wasPlaying || !currentGame) {
+        announceResult(data);
+      }
       showLearningExplanation(data);
-    } else if (data.status === 'lost') {
-      setMessage(challengeMessage, `La palabra era “${data.word}”. Inténtalo de nuevo mañana.`);
-      showLearningExplanation(data);
+    } else if (newCorrectGuess) {
+      sounds.correct();
+      setMessage(challengeMessage, '¡Bien! Esa letra sí está en la palabra.');
+    } else if (newWrongGuess) {
+      sounds.wrong();
+      setMessage(challengeMessage, `Esa letra no aparece. Te quedan ${6 - data.wrongAttempts} oportunidades.`);
     } else {
       setMessage(challengeMessage, 'Selecciona una letra para resolver la palabra del día.');
     }
+
+    currentGame = data;
   }
 
   async function handleGuess(letter) {
