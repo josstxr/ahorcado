@@ -4,6 +4,14 @@ const { authToken, requireTeacher } = require('../middleware/auth');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const router = express.Router();
+const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash';
+const GEMINI_MODEL_FALLBACKS = [
+  DEFAULT_GEMINI_MODEL,
+  'gemini-flash-latest',
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+];
 
 function shuffle(items) {
   const copy = [...items];
@@ -29,10 +37,41 @@ function sanitizeAiWord(value) {
     .replace(/[^a-zñ]/g, '');
 }
 
-function resolveGeminiModel() {
-  const configuredModel = (process.env.GEMINI_MODEL || 'gemini-1.5-flash').replace(/^models\//, '');
-  if (configuredModel === 'gemini-pro') return 'gemini-1.5-flash';
-  return configuredModel;
+function resolveGeminiModels() {
+  const configuredModel = (process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL).replace(/^models\//, '');
+  const preferredModel = configuredModel === 'gemini-pro' ? DEFAULT_GEMINI_MODEL : configuredModel;
+  return [...new Set([preferredModel, ...GEMINI_MODEL_FALLBACKS])];
+}
+
+function isGeminiAuthError(err) {
+  const message = String(err?.message || err || '');
+  return /API_KEY_INVALID|API key not valid|PERMISSION_DENIED|permission|authentication|401|403/i.test(message);
+}
+
+async function generateContentWithFallback(genAI, prompt) {
+  const errors = [];
+
+  for (const modelName of resolveGeminiModels()) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent(prompt);
+      return { result, modelName };
+    } catch (err) {
+      errors.push(`${modelName}: ${err?.message || err}`);
+      console.error(`Error al generar palabras con Gemini (${modelName}):`, err);
+
+      if (isGeminiAuthError(err)) {
+        const error = new Error('Gemini no pudo generar palabras porque la API key no es valida o no tiene permisos. Revisa GEMINI_API_KEY en Vercel.');
+        error.status = 401;
+        throw error;
+      }
+    }
+  }
+
+  const error = new Error(`Gemini no pudo generar palabras con los modelos disponibles. Revisa GEMINI_API_KEY y GEMINI_MODEL en Vercel. Modelos probados: ${resolveGeminiModels().join(', ')}.`);
+  error.status = 502;
+  error.details = errors;
+  throw error;
 }
 
 async function generateAiWords({ theme, difficulty, count, teacherId }) {
@@ -44,19 +83,8 @@ async function generateAiWords({ theme, difficulty, count, teacherId }) {
 
   const finalTheme = String(theme || '').trim() || 'General';
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const modelName = resolveGeminiModel();
-  const model = genAI.getGenerativeModel({ model: modelName });
   const prompt = `Genera exactamente ${count} palabras en español para un juego de ahorcado con el tema "${finalTheme}" y dificultad "${difficulty}". Las palabras no deben contener espacios, numeros ni caracteres especiales. Devuelve unicamente un array JSON de strings.`;
-  let result;
-
-  try {
-    result = await model.generateContent(prompt);
-  } catch (err) {
-    console.error(`Error al generar palabras con Gemini (${modelName}):`, err);
-    const error = new Error('Gemini no pudo generar palabras. Verifica GEMINI_API_KEY y usa GEMINI_MODEL=gemini-1.5-flash en Vercel.');
-    error.status = 502;
-    throw error;
-  }
+  const { result, modelName } = await generateContentWithFallback(genAI, prompt);
 
   const text = result.response.text();
   let generatedWords = [];
@@ -85,7 +113,7 @@ async function generateAiWords({ theme, difficulty, count, teacherId }) {
     words.push(newWord.rows[0]);
   }
 
-  return { theme: finalTheme, words };
+  return { theme: finalTheme, words, model: modelName };
 }
 
 router.get('/', authToken, requireTeacher, async (req, res) => {
@@ -163,6 +191,7 @@ router.post('/generate', authToken, requireTeacher, async (req, res) => {
     res.status(201).json({
       message: `${result.words.length} palabra(s) generadas y agregadas al banco.`,
       theme: result.theme,
+      model: result.model,
       words: result.words,
     });
   } catch (err) {
@@ -183,6 +212,7 @@ router.post('/prepare-game', authToken, requireTeacher, async (req, res) => {
     let words = [];
     const requestedTheme = String(theme || '').trim();
     let finalTheme = requestedTheme || 'General';
+    let aiModel = null;
 
     if (source === 'manual' && Array.isArray(wordIds) && wordIds.length > 0) {
       const ids = [...new Set(wordIds.map((id) => Number.parseInt(id, 10)).filter(Number.isInteger))];
@@ -209,6 +239,7 @@ router.post('/prepare-game', authToken, requireTeacher, async (req, res) => {
       const generated = await generateAiWords({ theme: finalTheme, difficulty, count, teacherId: req.user.id });
       finalTheme = generated.theme;
       words = generated.words;
+      aiModel = generated.model;
     } else {
       return res.status(400).json({ error: 'Selecciona un origen válido para las palabras.' });
     }
@@ -217,7 +248,7 @@ router.post('/prepare-game', authToken, requireTeacher, async (req, res) => {
       return res.status(404).json({ error: 'No se encontraron palabras con los criterios seleccionados.' });
     }
 
-    res.json({ message: 'Partida preparada.', theme: finalTheme, words });
+    res.json({ message: 'Partida preparada.', theme: finalTheme, model: aiModel, words });
   } catch (err) {
     console.error('Error preparing game:', err);
     res.status(err.status || 500).json({ error: err.message || 'Error al preparar la partida temática.' });
