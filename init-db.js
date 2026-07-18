@@ -6,9 +6,9 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-const connectionString = process.env.PG_CONNECTION_STRING;
+const connectionString = process.env.PG_CONNECTION_STRING || process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL;
 if (!connectionString) {
-  console.error('Error: falta PG_CONNECTION_STRING en .env');
+  console.error('Error: falta PG_CONNECTION_STRING, DATABASE_URL, POSTGRES_URL o POSTGRES_PRISMA_URL en .env');
   process.exit(1);
 }
 
@@ -65,4 +65,3 @@ async function main() {
 }
 
 main();
-

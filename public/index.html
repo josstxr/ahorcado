@@ -30,14 +30,13 @@
       
       <div id="login-view">
         <form id="login-form" class="auth-form" novalidate>
-          <label for="auth-name">Usuario:</label>
+          <label for="auth-name">Usuario o correo:</label>
           <input 
             type="text" 
             id="auth-name" 
-            name="username"
-            maxlength="30" 
-            pattern="^[a-zA-Z0-9_]{3,30}$"
-            title="El usuario debe tener entre 3 y 30 caracteres alfanuméricos."
+            name="credential"
+            maxlength="100" 
+            title="Ingresa tu usuario o correo electrónico."
             autocomplete="username"
             required 
           />
@@ -78,7 +77,7 @@
           <div class="action-icon">⚡</div>
           <div class="action-label">Palabra del Día</div>
         </button>
-        <button id="teacher-btn" class="action-btn hidden" style="display: none;">
+        <button id="teacher-btn" class="action-btn hidden">
           <div class="action-icon">📚</div>
           <div class="action-label">Panel de Profesor</div>
         </button>
@@ -171,6 +170,11 @@
 
         <label for="word-theme">Tema:</label>
         <input type="text" id="word-theme" name="wordTheme" maxlength="50" placeholder="Ej. Animales" value="General" required />
+
+        <label class="inline-check" for="word-assign-daily">
+          <input type="checkbox" id="word-assign-daily" name="wordAssignDaily" />
+          Usar también como Palabra del Día
+        </label>
         
         <div class="auth-actions">
           <button type="submit" id="add-word-btn">Agregar palabra</button>
@@ -198,10 +202,10 @@
               <input id="game-theme" maxlength="50" placeholder="Ej. Sistema solar" required>
             </label>
             <label for="game-word-count">Número de palabras
-              <select id="game-word-count"><option>3</option><option selected>5</option><option>10</option><option>15</option></select>
+              <select id="game-word-count"><option>3</option><option selected>5</option><option>10</option><option>15</option><option>20</option></select>
             </label>
             <label for="game-source">Origen
-              <select id="game-source"><option value="manual">Elegir del banco</option><option value="ai">Generar con IA</option></select>
+              <select id="game-source"><option value="manual">Elegir del banco</option><option value="random">Banco por tema</option><option value="ai">Generar con IA</option></select>
             </label>
             <label for="game-config-difficulty">Dificultad
               <select id="game-config-difficulty"><option value="easy">Fácil</option><option value="medium">Media</option><option value="hard">Difícil</option></select>

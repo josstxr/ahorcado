@@ -1,8 +1,8 @@
 // public/components/auth.js
 
-// Asegúrate de que la URL base de tu API sea la correcta.
-// El puerto debe coincidir con el de tu servidor (en el README dice 4000).
-const API_URL = 'http://localhost:4000/api';
+// La URL de la API se resuelve de forma relativa para que funcione
+// tanto en desarrollo local como en producción (Vercel).
+const API_URL = '/api';
 
 /**
  * Muestra un mensaje de error o éxito al usuario.

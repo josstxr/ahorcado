@@ -7,11 +7,6 @@ const { getJwtSecret } = require('../config/auth');
 
 const router = express.Router();
 const JWT_SECRET = getJwtSecret();
-const demoUsers = new Map();
-
-function getDemoUsers() {
-  return demoUsers;
-}
 
 // OWASP Top 10 - A07 Identification and Authentication Failures
 // Se aplican límites de peticiones a los endpoints de login y registro para frenar ataques por fuerza bruta.
@@ -21,6 +16,10 @@ router.use('/register', authLimiter);
 router.post('/register', async (req, res) => {
   try {
     console.log(`[AUTH] Registro intento para usuario: ${String(req.body?.name || '').trim()}`);
+
+    if (!process.env.PG_CONNECTION_STRING && !process.env.DATABASE_URL && !process.env.POSTGRES_URL && !process.env.POSTGRES_PRISMA_URL) {
+      return res.status(503).json({ error: 'La base de datos no está configurada. El registro no está disponible.' });
+    }
 
     const name = String(req.body.name || '').trim().slice(0, 30);
     const first_name = String(req.body.first_name || '').trim().slice(0, 50);
@@ -40,26 +39,6 @@ router.post('/register', async (req, res) => {
     }
     if (password.length < 6) {
       return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres.' });
-    }
-
-    const hasDatabase = Boolean(process.env.PG_CONNECTION_STRING || process.env.DATABASE_URL || process.env.POSTGRES_URL);
-    if (!hasDatabase) {
-      const passwordHash = bcrypt.hashSync(password, 10);
-      const user = {
-        id: Date.now(),
-        name,
-        first_name,
-        last_name,
-        email,
-        role,
-        score: 0,
-        password: passwordHash,
-      };
-      getDemoUsers().set(name.toLowerCase(), user);
-      getDemoUsers().set(email.toLowerCase(), user);
-      const token = jwt.sign({ id: user.id, name: user.name, role: user.role }, JWT_SECRET, { expiresIn: '8h' });
-      console.log('Registro en modo respaldo para:', user.name);
-      return res.json({ token, user: { id: user.id, name: user.name, first_name: user.first_name, last_name: user.last_name, email: user.email, role: user.role, score: user.score } });
     }
 
     const [existingName, existingEmail] = await Promise.all([
@@ -96,27 +75,13 @@ router.post('/login', async (req, res) => {
   try {
     console.log(`[AUTH] Login intento: ${req.ip} -> ${String(req.body?.credential || '').trim()}`);
 
-    if (!process.env.PG_CONNECTION_STRING && !process.env.DATABASE_URL && !process.env.POSTGRES_URL) {
+    if (!process.env.PG_CONNECTION_STRING && !process.env.DATABASE_URL && !process.env.POSTGRES_URL && !process.env.POSTGRES_PRISMA_URL) {
       return res.status(503).json({ error: 'La base de datos no está configurada en producción. Contacta al administrador.' });
     }
 
     const credential = String(req.body.credential || req.body.name || req.body.username || req.body.email || '').trim().slice(0, 100);
     const password = String(req.body.password || '');
     if (!credential || !password) return res.status(400).json({ error: 'El usuario/correo y la contraseña son obligatorios.' });
-
-    const hasDatabase = Boolean(process.env.PG_CONNECTION_STRING || process.env.DATABASE_URL || process.env.POSTGRES_URL);
-    if (!hasDatabase) {
-      const storedUser = getDemoUsers().get(credential.toLowerCase()) || getDemoUsers().get(credential.toLowerCase());
-      if (!storedUser) {
-        return res.status(401).json({ error: 'Credenciales incorrectas. Por favor, verifica tu usuario y contraseña.' });
-      }
-      const isValid = bcrypt.compareSync(password, storedUser.password);
-      if (!isValid) {
-        return res.status(401).json({ error: 'Credenciales incorrectas. Por favor, verifica tu usuario y contraseña.' });
-      }
-      const token = jwt.sign({ id: storedUser.id, name: storedUser.name, role: storedUser.role }, JWT_SECRET, { expiresIn: '8h' });
-      return res.json({ token, user: { id: storedUser.id, name: storedUser.name, first_name: storedUser.first_name, last_name: storedUser.last_name, email: storedUser.email, role: storedUser.role, score: storedUser.score } });
-    }
 
     const userRes = await pool.query(
       'SELECT id, name, first_name, last_name, email, password, role, score FROM players WHERE name = $1 OR email = $2',

@@ -55,6 +55,7 @@ const elements = {
   wordText: document.getElementById('word-text'),
   wordDifficulty: document.getElementById('word-difficulty'),
   wordTheme: document.getElementById('word-theme'),
+  wordAssignDaily: document.getElementById('word-assign-daily'),
   wordFilter: document.getElementById('word-filter'),
   themeFilter: document.getElementById('theme-filter'),
   teacherWordBank: document.getElementById('teacher-word-bank'),
@@ -122,9 +123,11 @@ async function setUserSession(data) {
   if (elements.teacherBtn) {
     if (data.user.role === 'teacher') {
       elements.teacherBtn.classList.remove('hidden');
+      elements.teacherBtn.style.display = '';
       teacherController.loadDailyWordsOptions();
     } else {
       elements.teacherBtn.classList.add('hidden');
+      elements.teacherBtn.style.display = 'none';
     }
   }
 

@@ -4,6 +4,24 @@ const { authToken, requireTeacher } = require('../middleware/auth');
 
 const router = express.Router();
 
+function shuffle(items) {
+  const copy = [...items];
+  for (let index = copy.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
+  }
+  return copy;
+}
+
+function distributeWords(wordIds, studentIds) {
+  const shuffledWords = shuffle(wordIds);
+  const buckets = studentIds.map(() => []);
+  shuffledWords.forEach((wordId, index) => {
+    buckets[index % studentIds.length].push(wordId);
+  });
+  return buckets;
+}
+
 router.get('/students', authToken, requireTeacher, async (req, res) => {
   try {
     const result = await pool.query(
@@ -43,19 +61,56 @@ router.post('/', authToken, requireTeacher, async (req, res) => {
   if (!Array.isArray(studentIds) || studentIds.length === 0 || !Array.isArray(wordIds) || wordIds.length === 0) {
     return res.status(400).json({ error: 'Se requieren IDs de alumnos y de palabras.' });
   }
+  if (!['easy', 'medium', 'hard'].includes(difficulty)) {
+    return res.status(400).json({ error: 'La dificultad no es válida.' });
+  }
+
+  const cleanStudentIds = [...new Set(studentIds.map((id) => Number.parseInt(id, 10)).filter(Number.isInteger))];
+  const cleanWordIds = [...new Set(wordIds.map((id) => Number.parseInt(id, 10)).filter(Number.isInteger))];
+
+  if (!cleanStudentIds.length || !cleanWordIds.length) {
+    return res.status(400).json({ error: 'Se requieren alumnos y palabras válidas.' });
+  }
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    for (const studentId of studentIds) {
+
+    const students = await client.query(
+      "SELECT id FROM players WHERE role = 'student' AND id = ANY($1::int[])",
+      [cleanStudentIds]
+    );
+    const validStudentIds = students.rows.map((row) => row.id);
+    if (!validStudentIds.length) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'No se encontraron alumnos válidos para asignar.' });
+    }
+
+    const words = await client.query('SELECT id FROM words WHERE id = ANY($1::int[])', [cleanWordIds]);
+    const validWordIds = words.rows.map((row) => row.id);
+    if (!validWordIds.length) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'No se encontraron palabras válidas para asignar.' });
+    }
+
+    const assignments = distributeWords(validWordIds, validStudentIds);
+    let created = 0;
+    for (const [index, assignedWordIds] of assignments.entries()) {
+      if (!assignedWordIds.length) continue;
       await client.query(
         `INSERT INTO assigned_games (teacher_id, student_id, theme, difficulty, word_ids)
          VALUES ($1, $2, $3, $4, $5)`,
-        [teacherId, studentId, theme, difficulty, wordIds]
+        [teacherId, validStudentIds[index], String(theme || '').trim() || 'General', difficulty, assignedWordIds]
       );
+      created += 1;
     }
+
     await client.query('COMMIT');
-    res.status(201).json({ message: `Partida asignada a ${studentIds.length} alumno(s).` });
+    res.status(201).json({
+      message: `Partida repartida aleatoriamente entre ${created} alumno(s).`,
+      assignedStudents: created,
+      totalWords: validWordIds.length,
+    });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Error creating assignments:', err);

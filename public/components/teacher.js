@@ -5,7 +5,7 @@ const difficultyLabels = { easy: 'Fácil', medium: 'Media', hard: 'Difícil' };
 
 export function initTeacherPanel({ elements, onWordsLoaded, onStartGame }) {
   const {
-    wordForm, wordText, wordDifficulty, wordTheme, teacherMessage,
+    wordForm, wordText, wordDifficulty, wordTheme, wordAssignDaily, teacherMessage,
     dailyWordForm, dailyWordSelect, dailyWordMessage, wordFilter, themeFilter,
     teacherWordBank, gameConfigForm, gameTheme, gameWordCount, gameSource,
     gameConfigDifficulty, gameConfigMessage, studentSelect, startPreparedGameBtn,
@@ -119,11 +119,13 @@ export function initTeacherPanel({ elements, onWordsLoaded, onStartGame }) {
         word: wordText.value.trim(),
         difficulty: wordDifficulty.value,
         theme: wordTheme?.value.trim() || 'General',
+        assignDaily: Boolean(wordAssignDaily?.checked),
       }),
     });
     setMessage(teacherMessage, data.message || data.error);
     if (response.ok) {
       wordText.value = '';
+      if (wordAssignDaily) wordAssignDaily.checked = false;
       await loadDailyWordsOptions();
     }
   }
@@ -168,7 +170,7 @@ export function initTeacherPanel({ elements, onWordsLoaded, onStartGame }) {
         if (!assignmentResponse.ok) return setMessage(gameConfigMessage, assignmentData.error || 'No se pudo asignar la partida.');
         localStorage.removeItem('themedGameQueue');
         startPreparedGameBtn?.classList.add('hidden');
-        setMessage(gameConfigMessage, `✓ ${assignmentData.message} Palabras: ${selected}`);
+        setMessage(gameConfigMessage, `✓ ${assignmentData.message} (${data.words.length} palabras: ${selected})`);
       } else {
         localStorage.setItem('themedGameQueue', JSON.stringify({
           theme: data.theme,
