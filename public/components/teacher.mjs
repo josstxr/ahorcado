@@ -10,29 +10,82 @@ export function initTeacherPanel({ elements, onWordsLoaded, onStartGame }) {
     aiWordForm, aiWordTheme, aiWordCount, aiWordDifficulty, aiWordMessage,
     dailyWordForm, dailyWordSelect, dailyWordMessage, wordFilter, themeFilter,
     teacherWordBank, gameConfigForm, gameTheme, gameWordCount, gameSource,
-    gameConfigDifficulty, gameConfigMessage, studentSelect, startPreparedGameBtn,
+    gameConfigDifficulty, gameConfigMessage, studentFilter, studentChecklist, startPreparedGameBtn,
     assignedGamesList, assignedGamesMessage,
     dailyWordText, dailyWordTheme, dailyWordDifficulty,
   } = elements;
   let words = [];
   let assignedGames = [];
+  let students = [];
   const selectedWordIds = new Set();
+  const selectedStudentIds = new Set();
+
+  function formatStudent(student) {
+    const fullName = `${student.first_name || ''} ${student.last_name || ''}`.trim();
+    return {
+      fullName: fullName || student.name || 'Alumno',
+      username: student.name || '',
+      email: student.email || '',
+      searchText: `${fullName} ${student.name || ''} ${student.email || ''}`.toLocaleLowerCase('es'),
+    };
+  }
+
+  function renderStudents() {
+    if (!studentChecklist) return;
+    const query = studentFilter?.value.trim().toLocaleLowerCase('es') || '';
+    const filtered = students.filter((student) => !query || formatStudent(student).searchText.includes(query));
+
+    studentChecklist.innerHTML = '';
+    if (!filtered.length) {
+      const empty = document.createElement('p');
+      empty.className = 'empty-state';
+      empty.textContent = students.length ? 'No hay alumnos que coincidan con el filtro.' : 'No hay alumnos registrados.';
+      studentChecklist.appendChild(empty);
+      return;
+    }
+
+    filtered.forEach((student) => {
+      const formatted = formatStudent(student);
+      const id = String(student.id);
+      const row = document.createElement('label');
+      row.className = 'student-option';
+      row.classList.toggle('selected', selectedStudentIds.has(id));
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.value = id;
+      checkbox.checked = selectedStudentIds.has(id);
+      checkbox.addEventListener('change', () => {
+        if (checkbox.checked) selectedStudentIds.add(id);
+        else selectedStudentIds.delete(id);
+        row.classList.toggle('selected', checkbox.checked);
+      });
+
+      const text = document.createElement('span');
+      const name = document.createElement('strong');
+      name.textContent = formatted.fullName;
+      const meta = document.createElement('small');
+      meta.textContent = [formatted.username && `@${formatted.username}`, formatted.email].filter(Boolean).join(' · ');
+      text.append(name, meta);
+      row.append(checkbox, text);
+      studentChecklist.appendChild(row);
+    });
+  }
 
   async function loadStudents() {
-    if (!studentSelect) return;
+    if (!studentChecklist) return;
     try {
       const { response, data } = await apiFetch('/api/assignments/students');
-      if (!response.ok) return;
-      studentSelect.innerHTML = '';
-      data.forEach((student) => {
-        const option = document.createElement('option');
-        option.value = student.id;
-        option.textContent = `${student.first_name} ${student.last_name} (@${student.name})`;
-        studentSelect.appendChild(option);
+      if (!response.ok) return setMessage(gameConfigMessage, data.error || 'No se pudieron cargar los alumnos.');
+      students = Array.isArray(data) ? data : [];
+      selectedStudentIds.forEach((id) => {
+        if (!students.some((student) => String(student.id) === id)) selectedStudentIds.delete(id);
       });
-      if (!data.length) studentSelect.innerHTML = '<option disabled>No hay alumnos registrados</option>';
+      renderStudents();
     } catch {
-      studentSelect.innerHTML = '<option disabled>No se pudieron cargar los alumnos</option>';
+      students = [];
+      renderStudents();
+      setMessage(gameConfigMessage, 'No se pudieron cargar los alumnos.');
     }
   }
 
@@ -290,7 +343,7 @@ export function initTeacherPanel({ elements, onWordsLoaded, onStartGame }) {
       });
       if (!response.ok) return setMessage(gameConfigMessage, data.error || 'No fue posible preparar la partida.');
       const selected = data.words.map((item) => item.word).join(', ');
-      const studentIds = [...(studentSelect?.selectedOptions || [])].map((option) => Number(option.value));
+      const studentIds = [...selectedStudentIds].map((id) => Number(id));
       if (studentIds.length) {
         const { response: assignmentResponse, data: assignmentData } = await apiFetch('/api/assignments', {
           method: 'POST',
@@ -316,6 +369,7 @@ export function initTeacherPanel({ elements, onWordsLoaded, onStartGame }) {
         setMessage(gameConfigMessage, `✓ ${data.message} Pulsa “Iniciar partida ahora”. Palabras: ${selected}`);
       }
       selectedWordIds.clear();
+      selectedStudentIds.clear();
       await loadDailyWordsOptions();
     } catch {
       setMessage(gameConfigMessage, 'No se pudo conectar con el servidor.');
@@ -330,6 +384,7 @@ export function initTeacherPanel({ elements, onWordsLoaded, onStartGame }) {
   dailyWordForm?.addEventListener('submit', (event) => { event.preventDefault(); submitDailyWord(); });
   gameConfigForm?.addEventListener('submit', (event) => { event.preventDefault(); prepareThemedGame(); });
   wordFilter?.addEventListener('input', renderWordBank);
+  studentFilter?.addEventListener('input', renderStudents);
   themeFilter?.addEventListener('change', () => {
     renderWordBank();
     if (themeFilter.value && gameTheme) gameTheme.value = themeFilter.value;

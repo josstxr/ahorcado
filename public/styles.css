@@ -586,8 +586,8 @@ button{border:0;border-radius:16px;padding:14px 19px;color:#fff;font-weight:720;
 .teacher-workspace{margin-top:10px}.filter-grid,.config-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.word-bank{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;max-height:330px;overflow:auto;margin:18px 0;padding:4px;scrollbar-color:var(--primary) transparent}
 .word-chip{display:flex;align-items:center;gap:10px;padding:13px 14px;border-radius:15px;background:var(--field);border:1px solid var(--line);transition:border .2s,transform .2s}.word-chip.selected{border-color:var(--primary);transform:translateY(-1px)}.word-chip input{width:18px;height:18px;margin:0;accent-color:var(--primary)}.word-chip div{display:flex;flex-direction:column;gap:5px;min-width:0}.word-chip strong{text-transform:capitalize}.word-chip span{font-size:.72rem;color:var(--muted)}.empty-state{grid-column:1/-1;text-align:center;padding:24px;border:1px dashed var(--line);border-radius:16px}
 .config-card{margin-top:24px;padding:22px;border-radius:22px;background:var(--field);border:1px solid var(--line)}
-#student-select{min-height:132px;padding:8px}#student-select option{padding:9px 10px;border-radius:10px;margin:2px 0}#student-select option:checked{background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff}
-#student-help{display:block;margin-top:7px;color:var(--muted);font-weight:500}.game-actions #assignment-select{min-width:240px;max-width:360px}.game-actions #start-game-btn{box-shadow:0 10px 25px rgba(91,92,240,.28)}
+.student-picker{display:grid;gap:10px}.student-picker>label{font-size:.84rem;font-weight:700;color:var(--muted);margin:0}.student-picker input[type="search"]{margin:0}.student-checklist{display:grid;gap:8px;max-height:240px;overflow:auto;padding:10px;border:1px solid var(--line);border-radius:16px;background:var(--field)}.student-option{display:grid!important;grid-template-columns:auto minmax(0,1fr);gap:11px;align-items:center;margin:0!important;padding:12px 13px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.45);cursor:pointer;transition:border .16s,background .16s,transform .16s}.student-option:hover{border-color:rgba(91,92,240,.42);transform:translateY(-1px)}.student-option.selected{border-color:var(--primary);background:rgba(91,92,240,.12)}.student-option input{width:18px;height:18px;margin:0;accent-color:var(--primary)}.student-option span{display:grid;gap:4px;min-width:0}.student-option strong{color:var(--text);line-height:1.2}.student-option small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-weight:600}
+#student-help{display:block;margin-top:0;color:var(--muted);font-weight:500}.game-actions #assignment-select{min-width:240px;max-width:360px}.game-actions #start-game-btn{box-shadow:0 10px 25px rgba(91,92,240,.28)}
 @media(max-width:680px){.letters-row{grid-template-columns:repeat(7,1fr);gap:6px}.letters-row button{min-width:0;padding:10px 2px}.filter-grid,.config-grid{grid-template-columns:1fr}.hangman-drawing{height:180px}.keyboard-label small{display:none}}
 
 .assignment-list{display:grid;gap:10px;margin-top:16px}
@@ -703,6 +703,22 @@ button{border:0;border-radius:16px;padding:14px 19px;color:#fff;font-weight:720;
 [data-theme="dark"] .guess-panel {
   background: rgba(255,255,255,.065);
   border-color: rgba(189,205,255,.2);
+}
+
+[data-theme="dark"] .student-checklist {
+  background: rgba(255,255,255,.055);
+  border-color: rgba(189,205,255,.2);
+}
+
+[data-theme="dark"] .student-option {
+  background: rgba(255,255,255,.06);
+  border-color: rgba(189,205,255,.18);
+}
+
+[data-theme="dark"] .student-option:hover,
+[data-theme="dark"] .student-option.selected {
+  background: rgba(184,167,255,.14);
+  border-color: rgba(184,167,255,.46);
 }
 
 @media(max-width:780px) {

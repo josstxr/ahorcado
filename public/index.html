@@ -276,10 +276,12 @@
               <select id="game-config-difficulty"><option value="easy">Fácil</option><option value="medium">Media</option><option value="hard">Difícil</option></select>
             </label>
           </div>
-          <label for="student-select">Asignar a alumnos
-            <select id="student-select" multiple size="5" aria-describedby="student-help"></select>
-            <small id="student-help">Usa Cmd/Ctrl para seleccionar varios. Déjalo vacío para preparar una partida propia.</small>
-          </label>
+          <div class="student-picker" aria-describedby="student-help">
+            <label for="student-filter">Asignar a alumnos</label>
+            <input id="student-filter" type="search" placeholder="Buscar por nombre, usuario o correo..." autocomplete="off">
+            <div id="student-checklist" class="student-checklist" role="group" aria-label="Lista de alumnos"></div>
+            <small id="student-help">Marca uno o varios alumnos. Déjalo sin selección para preparar una partida propia.</small>
+          </div>
           <div class="auth-actions">
             <button type="submit" id="create-themed-game-btn">Crear y asignar partida</button>
             <button type="button" id="start-prepared-game-btn" class="secondary-button hidden">Iniciar partida ahora</button>

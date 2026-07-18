@@ -25,7 +25,7 @@ function distributeWords(wordIds, studentIds) {
 router.get('/students', authToken, requireTeacher, async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT id, name, first_name, last_name FROM players WHERE role = 'student' ORDER BY first_name, last_name"
+      "SELECT id, name, first_name, last_name, email FROM players WHERE role = 'student' ORDER BY first_name, last_name, name"
     );
     res.json(result.rows);
   } catch (err) {
