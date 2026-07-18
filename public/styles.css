@@ -840,3 +840,64 @@ button{border:0;border-radius:16px;padding:14px 19px;color:#fff;font-weight:720;
   background: rgba(255, 255, 255, .075);
   border-color: rgba(239, 226, 255, .18);
 }
+
+/* Home menu alignment */
+.home-actions .action-btn {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.home-actions .action-label {
+  display: block;
+  line-height: 1.15;
+}
+
+.home-actions .action-icon-img,
+.home-actions .settings-icon {
+  flex: 0 0 auto;
+}
+
+@media(max-width:680px) {
+  .home-actions {
+    gap: 16px;
+  }
+
+  .home-actions .action-btn {
+    display: grid;
+    grid-template-columns: 120px minmax(0, 1fr);
+    align-items: center;
+    justify-items: center;
+    min-height: 132px;
+    padding: 22px 28px;
+    text-align: left;
+  }
+
+  .home-actions .action-icon-img,
+  .home-actions .settings-icon {
+    width: 72px;
+    height: 72px;
+    margin: 0;
+    grid-column: 1;
+  }
+
+  .home-actions .action-label {
+    width: 100%;
+    grid-column: 2;
+    text-align: left;
+    font-size: clamp(1.25rem, 4.8vw, 1.8rem);
+  }
+}
+
+@media(max-width:420px) {
+  .home-actions .action-btn {
+    grid-template-columns: 96px minmax(0, 1fr);
+    padding: 20px 22px;
+  }
+
+  .home-actions .action-icon-img,
+  .home-actions .settings-icon {
+    width: 64px;
+    height: 64px;
+  }
+}
