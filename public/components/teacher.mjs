@@ -12,6 +12,7 @@ export function initTeacherPanel({ elements, onWordsLoaded, onStartGame }) {
     teacherWordBank, gameConfigForm, gameTheme, gameWordCount, gameSource,
     gameConfigDifficulty, gameConfigMessage, studentSelect, startPreparedGameBtn,
     assignedGamesList, assignedGamesMessage,
+    dailyWordText, dailyWordTheme, dailyWordDifficulty,
   } = elements;
   let words = [];
   let assignedGames = [];
@@ -216,10 +217,29 @@ export function initTeacherPanel({ elements, onWordsLoaded, onStartGame }) {
   }
 
   async function submitDailyWord() {
-    if (!dailyWordForm?.checkValidity()) return dailyWordForm?.reportValidity();
-    const { response, data } = await setDailyWord(dailyWordSelect.value);
+    const typedWord = dailyWordText?.value.trim() || '';
+    const selectedWordId = dailyWordSelect?.value || '';
+
+    if (!selectedWordId && !typedWord) {
+      return setMessage(dailyWordMessage, 'Selecciona una palabra o escribe una nueva.');
+    }
+    if (typedWord && !dailyWordForm?.checkValidity()) return dailyWordForm?.reportValidity();
+
+    const payload = typedWord
+      ? {
+          word: typedWord,
+          theme: dailyWordTheme?.value.trim() || 'General',
+          difficulty: dailyWordDifficulty?.value || 'easy',
+        }
+      : { wordId: selectedWordId };
+
+    const { response, data } = await setDailyWord(payload);
     setMessage(dailyWordMessage, data.message || data.error);
-    if (response.ok) dailyWordSelect.value = '';
+    if (response.ok) {
+      if (dailyWordSelect) dailyWordSelect.value = '';
+      if (dailyWordText) dailyWordText.value = '';
+      await loadDailyWordsOptions();
+    }
   }
 
   async function generateAiWordsForBank() {

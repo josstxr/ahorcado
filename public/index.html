@@ -266,9 +266,24 @@
       <h3>Establecer Palabra del Día</h3>
       <form id="daily-word-form" class="auth-form" novalidate>
         <label for="daily-word-select">Seleccionar palabra:</label>
-        <select id="daily-word-select" name="dailyWordSelect" required>
+        <select id="daily-word-select" name="dailyWordSelect">
           <option value="">Cargando palabras...</option>
         </select>
+        <div class="config-grid">
+          <label for="daily-word-text">O escribir palabra nueva
+            <input id="daily-word-text" maxlength="40" pattern="^[a-zA-ZñÑáéíóúÁÉÍÓÚüÜ]+$" placeholder="Ej. algoritmo" autocomplete="off" />
+          </label>
+          <label for="daily-word-theme">Tema
+            <input id="daily-word-theme" maxlength="50" placeholder="Ej. Programación" value="General" />
+          </label>
+          <label for="daily-word-difficulty">Dificultad
+            <select id="daily-word-difficulty">
+              <option value="easy">Fácil</option>
+              <option value="medium">Media</option>
+              <option value="hard">Difícil</option>
+            </select>
+          </label>
+        </div>
         <button type="submit" id="set-daily-word-btn">Establecer como Palabra del Día</button>
         <div class="message" id="daily-word-message" aria-live="polite"></div>
       </form>

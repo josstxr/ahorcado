@@ -4,6 +4,15 @@ const { authToken } = require('../middleware/auth');
 
 const router = express.Router();
 
+function sanitizeWord(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zñ]/g, '');
+}
+
 // 1. Obtener palabra del día (para estudiantes - enmascarada)
 // OWASP Top 10 - A01 Broken Access Control
 // Requiere autenticación para evitar que usuarios no autorizados inspeccionen o manipulen datos de otros jugadores.
@@ -55,12 +64,38 @@ router.post('/', authToken, async (req, res) => {
       return res.status(403).json({ error: 'Solo profesores pueden establecer palabra del día' });
     }
 
-    const wordId = parseInt(req.body.wordId, 10);
-    if (!wordId) {
-      return res.status(400).json({ error: 'Debes seleccionar una palabra válida' });
+    const requestedWordId = parseInt(req.body.wordId, 10);
+    const newWord = sanitizeWord(req.body.word);
+    const difficulty = ['easy', 'medium', 'hard'].includes(req.body.difficulty) ? req.body.difficulty : 'easy';
+    const theme = String(req.body.theme || '').trim() || 'General';
+
+    if (!requestedWordId && !newWord) {
+      return res.status(400).json({ error: 'Selecciona una palabra o escribe una nueva.' });
     }
 
     await client.query('BEGIN');
+
+    let wordId = requestedWordId;
+    let createdFromText = false;
+    if (!wordId) {
+      const createdWord = await client.query(
+        `INSERT INTO words (word, difficulty, theme, created_by)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (word) DO UPDATE SET
+           difficulty = EXCLUDED.difficulty,
+           theme = EXCLUDED.theme
+         RETURNING id`,
+        [newWord, difficulty, theme, req.user.id]
+      );
+      wordId = createdWord.rows[0].id;
+      createdFromText = true;
+    } else {
+      const exists = await client.query('SELECT id FROM words WHERE id = $1', [wordId]);
+      if (!exists.rows.length) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Debes seleccionar una palabra válida' });
+      }
+    }
 
     // Desactivar palabra del día anterior
     await client.query(
@@ -78,7 +113,9 @@ router.post('/', authToken, async (req, res) => {
     await client.query('COMMIT');
 
     res.json({
-      message: 'Palabra del día establecida correctamente',
+      message: createdFromText
+        ? 'Palabra creada y establecida como Palabra del Día.'
+        : 'Palabra del Día establecida correctamente.',
       id: result.rows[0].id,
     });
   } catch (err) {

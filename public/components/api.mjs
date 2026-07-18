@@ -74,10 +74,11 @@ export async function loadWordsForTeacher() {
   return apiFetch('/api/words');
 }
 
-export async function setDailyWord(wordId) {
+export async function setDailyWord(payload) {
+  const body = typeof payload === 'object' && payload !== null ? payload : { wordId: payload };
   return apiFetch('/api/daily-words', {
     method: 'POST',
-    body: JSON.stringify({ wordId }),
+    body: JSON.stringify(body),
   });
 }
 
