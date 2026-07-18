@@ -706,3 +706,133 @@ button{border:0;border-radius:16px;padding:14px 19px;color:#fff;font-weight:720;
     grid-template-columns: 1fr;
   }
 }
+
+/* Refined dark mode */
+[data-theme="dark"] {
+  --bg: #09080d;
+  --text: #f7f4ff;
+  --muted: #c8bfce;
+  --glass: rgba(18, 16, 24, .88);
+  --glass-strong: rgba(32, 28, 40, .96);
+  --line: rgba(239, 226, 255, .16);
+  --field: rgba(255, 255, 255, .07);
+  --shadow: 0 32px 95px rgba(0, 0, 0, .64);
+  --primary: #b8a7ff;
+  --primary-2: #69e0e7;
+  --success: #62e6aa;
+}
+
+[data-theme="dark"] body {
+  background:
+    linear-gradient(145deg, #050509 0%, #0d0b12 42%, #15101b 72%, #0b0a10 100%);
+}
+
+[data-theme="dark"] .panel,
+[data-theme="dark"] .topbar {
+  background: linear-gradient(180deg, rgba(24, 22, 31, .9), rgba(13, 12, 18, .86));
+  border-color: rgba(239, 226, 255, .15);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, .58), inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  color: var(--text);
+  background: rgba(7, 7, 11, .58);
+  border-color: rgba(239, 226, 255, .18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04);
+}
+
+[data-theme="dark"] input::placeholder {
+  color: rgba(200, 191, 206, .58);
+}
+
+[data-theme="dark"] input:focus,
+[data-theme="dark"] select:focus {
+  background: rgba(16, 14, 21, .92);
+  border-color: rgba(105, 224, 231, .7);
+  box-shadow: 0 0 0 4px rgba(105, 224, 231, .14), 0 10px 30px rgba(0, 0, 0, .22);
+  outline: none;
+}
+
+[data-theme="dark"] button {
+  color: #08070d;
+  background: linear-gradient(135deg, #d8ceff, #69e0e7);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, .72), 0 14px 30px rgba(105, 224, 231, .16);
+}
+
+[data-theme="dark"] .secondary-button,
+[data-theme="dark"] button.secondary-button {
+  color: var(--text);
+  background: rgba(255, 255, 255, .055);
+  border-color: rgba(239, 226, 255, .18);
+}
+
+[data-theme="dark"] .secondary-button:hover,
+[data-theme="dark"] button.secondary-button:hover {
+  background: rgba(255, 255, 255, .1);
+  border-color: rgba(184, 167, 255, .38);
+}
+
+[data-theme="dark"] .action-btn,
+[data-theme="dark"] .config-card,
+[data-theme="dark"] .game-actions.config-toolbar,
+[data-theme="dark"] .guess-panel,
+[data-theme="dark"] .hangman-stage,
+[data-theme="dark"] .word-chip,
+[data-theme="dark"] .assignment-card,
+[data-theme="dark"] .info-row > div,
+[data-theme="dark"] .hint,
+[data-theme="dark"] .result-message,
+[data-theme="dark"] .leaderboard li,
+[data-theme="dark"] .challenge-ranking li {
+  background: rgba(255, 255, 255, .055);
+  border-color: rgba(239, 226, 255, .16);
+}
+
+[data-theme="dark"] .action-btn:hover,
+[data-theme="dark"] .word-chip.selected {
+  background: rgba(184, 167, 255, .11);
+  border-color: rgba(184, 167, 255, .38);
+}
+
+[data-theme="dark"] .word-display {
+  color: #d8ceff;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .07), rgba(105, 224, 231, .055));
+  border-color: rgba(216, 206, 255, .2);
+  text-shadow: 0 0 24px rgba(184, 167, 255, .2);
+}
+
+[data-theme="dark"] .letters-row button {
+  background: rgba(255, 255, 255, .06);
+  border-color: rgba(239, 226, 255, .16);
+}
+
+[data-theme="dark"] .letters-row button:not(.used):hover {
+  background: rgba(184, 167, 255, .13);
+  border-color: rgba(184, 167, 255, .42);
+}
+
+[data-theme="dark"] .letters-row button.correct {
+  color: #7af0b8;
+  background: rgba(98, 230, 170, .13);
+  border-color: rgba(98, 230, 170, .34);
+}
+
+[data-theme="dark"] .letters-row button.wrong,
+[data-theme="dark"] .danger-button,
+[data-theme="dark"] button.danger-button {
+  color: #ff8a9a;
+  background: rgba(255, 112, 132, .09);
+  border-color: rgba(255, 112, 132, .28);
+}
+
+[data-theme="dark"] .message,
+[data-theme="dark"] .eyebrow {
+  color: #b8a7ff;
+}
+
+[data-theme="dark"] .theme-toggle {
+  background: rgba(255, 255, 255, .075);
+  border-color: rgba(239, 226, 255, .18);
+}
