@@ -38,7 +38,8 @@ async function generateAiWords({ theme, difficulty, count, teacherId }) {
 
   const finalTheme = String(theme || '').trim() || 'General';
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-pro' });
+  const modelName = (process.env.GEMINI_MODEL || 'gemini-1.5-flash').replace(/^models\//, '');
+  const model = genAI.getGenerativeModel({ model: modelName });
   const prompt = `Genera exactamente ${count} palabras en español para un juego de ahorcado con el tema "${finalTheme}" y dificultad "${difficulty}". Las palabras no deben contener espacios, numeros ni caracteres especiales. Devuelve unicamente un array JSON de strings.`;
   const result = await model.generateContent(prompt);
   const text = result.response.text();
